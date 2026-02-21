@@ -172,7 +172,7 @@
         </div>
 
         <!-- Grid -->
-        <div x-show="filteredWords.length > 0" x-transition.opacity.duration.300ms class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div x-show="filteredWords.length > 0" x-transition.opacity.duration.300ms class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <template x-for="(word, index) in filteredWords" :key="word.no">
             <div class="group perspective-1000 vocab-card" :style="`animation-delay: ${Math.min(index * 25, 350)}ms`">
               <div class="relative w-full h-48 card-flip cursor-pointer">
