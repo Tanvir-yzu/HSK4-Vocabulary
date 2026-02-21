@@ -165,6 +165,19 @@
             >
               <span x-text="showFavoritesOnly ? '❤️ Favorites Only: ON' : '🤍 Favorites Only: OFF'"></span>
             </button>
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+              <span class="text-gray-600 dark:text-gray-300">Pinyin A-Z</span>
+              <select
+                x-model="selectedPinyinLetter"
+                @change="savePinyinLetterFilter()"
+                class="bg-transparent outline-none text-indigo-700 dark:text-indigo-300"
+              >
+                <option value="">All</option>
+                <template x-for="letter in pinyinLetters" :key="letter">
+                  <option :value="letter" x-text="letter"></option>
+                </template>
+              </select>
+            </div>
           </div>
         </section>
 
@@ -878,6 +891,8 @@
         flippedCardNo: null,
         lovedWordNos: [],
         showFavoritesOnly: false,
+        selectedPinyinLetter: '',
+        pinyinLetters: Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
         quizMode: false,
         lastQuestionNo: null,
         currentQuestion: null,
@@ -908,6 +923,11 @@
             results = results.filter(w => this.lovedWordNos.includes(w.no));
           }
 
+          if (this.selectedPinyinLetter) {
+            const selected = this.selectedPinyinLetter.toLowerCase();
+            results = results.filter(w => this.normalizePinyin(w.pinyin).startsWith(selected));
+          }
+
           return results;
         },
 
@@ -917,10 +937,12 @@
           const storedPinyin = localStorage.getItem('showPinyin');
           const storedLovedWords = localStorage.getItem('lovedWordNos');
           const storedFavoritesOnly = localStorage.getItem('showFavoritesOnly');
+          const storedPinyinLetter = localStorage.getItem('selectedPinyinLetter');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
           this.lovedWordNos = storedLovedWords ? JSON.parse(storedLovedWords) : [];
           this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
+          this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
           document.documentElement.classList.toggle('dark', this.darkMode);
         },
 
@@ -938,6 +960,10 @@
         toggleFavoritesOnly() {
           this.showFavoritesOnly = !this.showFavoritesOnly;
           localStorage.setItem('showFavoritesOnly', String(this.showFavoritesOnly));
+        },
+
+        savePinyinLetterFilter() {
+          localStorage.setItem('selectedPinyinLetter', this.selectedPinyinLetter);
         },
 
         clearSearch() {
@@ -967,6 +993,13 @@
 
         isLoved(wordNo) {
           return this.lovedWordNos.includes(wordNo);
+        },
+
+        normalizePinyin(text) {
+          return text
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
         },
 
         speak(text) {
