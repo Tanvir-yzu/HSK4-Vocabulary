@@ -15,6 +15,9 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
     [x-cloak] { display: none !important; }
+    .perspective-1000 {
+      perspective: 1000px;
+    }
     .card-flip {
       transition: transform 0.6s;
       transform-style: preserve-3d;
@@ -30,12 +33,13 @@
     }
   </style>
 </head>
-<body x-data="app()" x-cloak class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans">
+<body x-data="app()" x-cloak class="bg-gradient-to-br from-slate-50 via-indigo-50 to-violet-50 dark:from-gray-950 dark:via-gray-900 dark:to-slate-900 text-gray-800 dark:text-gray-100 font-sans min-h-screen">
 
   <!-- Header -->
-  <header class="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-      <h1 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">HSK 4 Vocabulary</h1>
+  <header class="sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl border border-white/60 dark:border-gray-700/60 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-sm px-4 py-4">
+      <h1 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">HSK 4 Vocabulary</h1>
 
       <div class="flex items-center gap-4 w-full md:w-auto">
         <!-- Search -->
@@ -43,13 +47,13 @@
           type="text" 
           x-model="searchQuery"
           placeholder="Search Chinese, Pinyin..."
-          class="w-full md:w-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+          class="w-full md:w-72 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-700/90 focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-sm"
         >
 
         <!-- Theme Toggle -->
         <button 
           @click="toggleDarkMode()"
-          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+          class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
           :class="{ 'bg-gray-200 dark:bg-gray-700': darkMode }"
         >
           <span x-text="darkMode ? '☀️' : '🌙'"></span>
@@ -58,10 +62,11 @@
         <!-- Quiz Toggle -->
         <button 
           @click="startQuiz()"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          class="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-sm shadow-indigo-400/40"
         >
           Start Quiz
         </button>
+      </div>
       </div>
     </div>
   </header>
@@ -71,8 +76,9 @@
     <template x-if="!quizMode">
       <div>
         <!-- Stats -->
-        <div class="mb-6 text-gray-600 dark:text-gray-400">
-          Showing <span x-text="filteredWords.length"></span> words
+        <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-gray-800/80 px-4 py-2 text-gray-600 dark:text-gray-300 shadow-sm">
+          <span class="text-indigo-600 dark:text-indigo-400">📘</span>
+          Showing <span class="font-semibold" x-text="filteredWords.length"></span> words
         </div>
 
         <!-- Grid -->
@@ -81,19 +87,19 @@
             <div class="group perspective-1000">
               <div class="relative w-full h-48 card-flip cursor-pointer">
                 <!-- Front -->
-                <div class="absolute inset-0 card-front bg-white dark:bg-gray-800 rounded-xl shadow-md flex flex-col items-center justify-center p-4">
+                <div class="absolute inset-0 card-front bg-white/95 dark:bg-gray-800/95 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-md hover:shadow-lg flex flex-col items-center justify-center p-4 transition">
                   <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
                   <p class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
                   <button 
                     @click.stop="speak(word.chinese)"
-                    class="mt-4 p-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800 transition"
+                    class="mt-4 p-2.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-xl hover:bg-indigo-200 dark:hover:bg-indigo-800 transition"
                   >
                     🔊
                   </button>
                 </div>
 
                 <!-- Back -->
-                <div class="absolute inset-0 card-back bg-indigo-50 dark:bg-gray-700 rounded-xl shadow-md flex flex-col items-center justify-center p-4 text-center">
+                <div class="absolute inset-0 card-back bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl border border-indigo-100 dark:border-gray-600 shadow-md flex flex-col items-center justify-center p-4 text-center">
                   <p class="font-semibold text-lg" x-text="'English: ' + word.english"></p>
                   <p class="text-gray-600 dark:text-gray-300 mt-2" x-text="'Bengali: ' + word.bengali"></p>
                 </div>
@@ -107,10 +113,10 @@
     <!-- Quiz Mode -->
     <template x-if="quizMode">
       <div class="max-w-2xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+        <div class="bg-white/90 dark:bg-gray-800/90 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg p-8 backdrop-blur-sm">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">Quiz Mode</h2>
-            <button @click="quizMode = false" class="text-red-500 hover:underline">Exit</button>
+            <h2 class="text-2xl font-bold tracking-tight">Quiz Mode</h2>
+            <button @click="quizMode = false" class="text-red-500 hover:underline font-medium">Exit</button>
           </div>
 
           <div x-show="currentQuestion">
@@ -119,7 +125,7 @@
               <template x-for="(option, index) in currentOptions" :key="index">
                 <button 
                   @click="checkAnswer(option)"
-                  class="w-full p-3 text-left rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
+                  class="w-full p-3 text-left rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
                   :class="{ 
                     'bg-green-100 border-green-500': selectedOption === option && option === currentQuestion.english,
                     'bg-red-100 border-red-500': selectedOption === option && option !== currentQuestion.english,
@@ -133,7 +139,7 @@
             <div x-show="answered" class="mt-4">
               <p x-text="isCorrect ? '✅ Correct!' : '❌ Wrong!'" 
                  :class="isCorrect ? 'text-green-600' : 'text-red-600'"></p>
-              <button @click="nextQuestion" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+              <button @click="nextQuestion" class="mt-4 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-400/40">
                 Next Question
               </button>
             </div>
@@ -144,7 +150,7 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-white dark:bg-gray-800 py-6 mt-12">
+  <footer class="bg-white/70 dark:bg-gray-800/70 border-t border-white/50 dark:border-gray-700 py-6 mt-12 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 text-center text-gray-500 dark:text-gray-400">
       © 2026 HSK 4 Vocabulary • Built with Tailwind CSS & Alpine.js
     </div>
@@ -762,6 +768,7 @@
         searchQuery: '',
         darkMode: false,
         quizMode: false,
+        lastQuestionNo: null,
         currentQuestion: null,
         currentOptions: [],
         selectedOption: null,
@@ -770,9 +777,14 @@
 
         // Computed
         get filteredWords() {
+          const query = this.searchQuery.trim().toLowerCase();
+          if (!query) return this.words;
+
           return this.words.filter(w => 
-            w.chinese.includes(this.searchQuery) || 
-            w.pinyin.toLowerCase().includes(this.searchQuery.toLowerCase())
+            w.chinese.includes(query) || 
+            w.pinyin.toLowerCase().includes(query) ||
+            w.english.toLowerCase().includes(query) ||
+            w.bengali.includes(query)
           );
         },
 
@@ -789,6 +801,8 @@
         },
 
         speak(text) {
+          if (!('speechSynthesis' in window)) return;
+          window.speechSynthesis.cancel();
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'zh-CN';
           window.speechSynthesis.speak(utterance);
@@ -800,7 +814,13 @@
         },
 
         nextQuestion() {
-          const randomWord = this.words[Math.floor(Math.random() * this.words.length)];
+          let randomWord = this.words[Math.floor(Math.random() * this.words.length)];
+          if (this.words.length > 1) {
+            while (randomWord.no === this.lastQuestionNo) {
+              randomWord = this.words[Math.floor(Math.random() * this.words.length)];
+            }
+          }
+
           const options = [randomWord.english];
           
           while (options.length < 4) {
@@ -810,6 +830,7 @@
             }
           }
           
+          this.lastQuestionNo = randomWord.no;
           this.currentQuestion = randomWord;
           this.currentOptions = this.shuffleArray(options);
           this.selectedOption = null;
