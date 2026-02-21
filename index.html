@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HSK 4 Vocabulary | Modern Learning</title>
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = { darkMode: 'class' };
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .card-flip {
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    .group:hover .card-flip {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      backface-visibility: hidden;
+    }
+    .card-back {
+      transform: rotateY(180deg);
+    }
+  </style>
+</head>
+<body x-data="app()" x-cloak class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <h1 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">HSK 4 Vocabulary</h1>
+
+      <div class="flex items-center gap-4 w-full md:w-auto">
+        <!-- Search -->
+        <input 
+          type="text" 
+          x-model="searchQuery"
+          placeholder="Search Chinese, Pinyin..."
+          class="w-full md:w-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+        >
+
+        <!-- Theme Toggle -->
+        <button 
+          @click="toggleDarkMode()"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+          :class="{ 'bg-gray-200 dark:bg-gray-700': darkMode }"
+        >
+          <span x-text="darkMode ? '☀️' : '🌙'"></span>
+        </button>
+
+        <!-- Quiz Toggle -->
+        <button 
+          @click="startQuiz()"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+        >
+          Start Quiz
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <template x-if="!quizMode">
+      <div>
+        <!-- Stats -->
+        <div class="mb-6 text-gray-600 dark:text-gray-400">
+          Showing <span x-text="filteredWords.length"></span> words
+        </div>
+
+        <!-- Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <template x-for="word in filteredWords" :key="word.no">
+            <div class="group perspective-1000">
+              <div class="relative w-full h-48 card-flip cursor-pointer">
+                <!-- Front -->
+                <div class="absolute inset-0 card-front bg-white dark:bg-gray-800 rounded-xl shadow-md flex flex-col items-center justify-center p-4">
+                  <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
+                  <p class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
+                  <button 
+                    @click.stop="speak(word.chinese)"
+                    class="mt-4 p-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800 transition"
+                  >
+                    🔊
+                  </button>
+                </div>
+
+                <!-- Back -->
+                <div class="absolute inset-0 card-back bg-indigo-50 dark:bg-gray-700 rounded-xl shadow-md flex flex-col items-center justify-center p-4 text-center">
+                  <p class="font-semibold text-lg" x-text="'English: ' + word.english"></p>
+                  <p class="text-gray-600 dark:text-gray-300 mt-2" x-text="'Bengali: ' + word.bengali"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- Quiz Mode -->
+    <template x-if="quizMode">
+      <div class="max-w-2xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Quiz Mode</h2>
+            <button @click="quizMode = false" class="text-red-500 hover:underline">Exit</button>
+          </div>
+
+          <div x-show="currentQuestion">
+            <p class="text-lg mb-4">What does "<span x-text="currentQuestion.chinese"></span>" mean?</p>
+            <div class="space-y-3">
+              <template x-for="(option, index) in currentOptions" :key="index">
+                <button 
+                  @click="checkAnswer(option)"
+                  class="w-full p-3 text-left rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
+                  :class="{ 
+                    'bg-green-100 border-green-500': selectedOption === option && option === currentQuestion.english,
+                    'bg-red-100 border-red-500': selectedOption === option && option !== currentQuestion.english,
+                    'opacity-50 cursor-not-allowed': answered
+                  }"
+                  :disabled="answered"
+                  x-text="option"
+                ></button>
+              </template>
+            </div>
+            <div x-show="answered" class="mt-4">
+              <p x-text="isCorrect ? '✅ Correct!' : '❌ Wrong!'" 
+                 :class="isCorrect ? 'text-green-600' : 'text-red-600'"></p>
+              <button @click="nextQuestion" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                Next Question
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 text-center text-gray-500 dark:text-gray-400">
+      © 2026 HSK 4 Vocabulary • Built with Tailwind CSS & Alpine.js
+    </div>
+  </footer>
+
+  <!-- Alpine.js Logic -->
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('app', () => ({
+        // Data
+        words: [
+  {"no":1,"chinese":"爱情","pinyin":"àiqíng","english":"Love","bengali":"প্রেম"},
+  {"no":2,"chinese":"安排","pinyin":"ānpái","english":"arrange","bengali":"ব্যবস্থা করা"},
+  {"no":3,"chinese":"安全","pinyin":"ānquán","english":"security","bengali":"নিরাপত্তা"},
+  {"no":4,"chinese":"按时","pinyin":"ànshí","english":"on time","bengali":"সময়মতো"},
+  {"no":5,"chinese":"按照","pinyin":"ànzhào","english":"according to","bengali":"অনুসারে"},
+  {"no":6,"chinese":"百分之","pinyin":"bǎifēnzhī","english":"percent","bengali":"শতাংশ"},
+  {"no":7,"chinese":"棒","pinyin":"bàng","english":"stick; excellent","bengali":"লাঠি; চমৎকার"},
+  {"no":8,"chinese":"包子","pinyin":"bāozi","english":"Steamed stuffed bun","bengali":"বাষ্পযুক্ত স্টাফড বান"},
+  {"no":9,"chinese":"保护","pinyin":"bǎohù","english":"protect","bengali":"রক্ষা করা"},
+  {"no":10,"chinese":"保证","pinyin":"bǎozhèng","english":"ensure","bengali":"নিশ্চিত করা"},
+  {"no":11,"chinese":"抱","pinyin":"bào","english":"Hold","bengali":"ধরা"},
+  {"no":12,"chinese":"抱歉","pinyin":"bàoqiàn","english":"feel sorry","bengali":"দুঃখিত বোধ করা"},
+  {"no":13,"chinese":"报名","pinyin":"bàomíng","english":"sign up","bengali":"নাম নথিভুক্ত করা"},
+  {"no":14,"chinese":"倍","pinyin":"bèi","english":"times","bengali":"বার"},
+  {"no":15,"chinese":"本来","pinyin":"běnlái","english":"originally","bengali":"মূলত"},
+  {"no":16,"chinese":"笨","pinyin":"bèn","english":"stupid","bengali":"মূর্খ"},
+  {"no":17,"chinese":"比如","pinyin":"bǐrú","english":"such as","bengali":"যেমন"},
+  {"no":18,"chinese":"毕业","pinyin":"bìyè","english":"graduation","bengali":"স্নাতক"},
+  {"no":19,"chinese":"遍","pinyin":"biàn","english":"Times","bengali":"বার"},
+  {"no":20,"chinese":"标准","pinyin":"biāozhǔn","english":"standard","bengali":"মান"},
+  {"no":21,"chinese":"表格","pinyin":"biǎogé","english":"form","bengali":"ফর্ম"},
+  {"no":22,"chinese":"表示","pinyin":"biǎoshì","english":"Express","bengali":"প্রকাশ করা"},
+  {"no":23,"chinese":"表演","pinyin":"biǎoyǎn","english":"perform","bengali":"অভিনয় করা"},
+  {"no":24,"chinese":"表扬","pinyin":"biǎoyáng","english":"Praise","bengali":"প্রশংসা"},
+  {"no":25,"chinese":"饼干","pinyin":"bǐnggān","english":"Biscuits","bengali":"বিস্কুট"},
+  {"no":26,"chinese":"并且","pinyin":"bìngqiě","english":"also","bengali":"এছাড়াও"},
+  {"no":27,"chinese":"博士","pinyin":"bóshì","english":"doctor","bengali":"ডাক্তার"},
+  {"no":28,"chinese":"不过","pinyin":"búguò","english":"However","bengali":"তবে"},
+  {"no":29,"chinese":"不得不","pinyin":"bùdébù","english":"have to","bengali":"করতে হবে"},
+  {"no":30,"chinese":"不管","pinyin":"bùguǎn","english":"no matter","bengali":"যাই হোক না কেন"},
+  {"no":31,"chinese":"不仅","pinyin":"bùjǐn","english":"not only","bengali":"শুধু নয়"},
+  {"no":32,"chinese":"部分","pinyin":"bùfen","english":"Part","bengali":"অংশ"},
+  {"no":33,"chinese":"擦","pinyin":"cā","english":"wipe","bengali":"মুছা"},
+  {"no":34,"chinese":"猜","pinyin":"cāi","english":"guess","bengali":"অনুমান করা"},
+  {"no":35,"chinese":"材料","pinyin":"cáiliào","english":"Material Science","bengali":"উপাদান বিজ্ঞান"},
+  {"no":36,"chinese":"参观","pinyin":"cānguān","english":"visit","bengali":"পরিদর্শন"},
+  {"no":37,"chinese":"餐厅","pinyin":"cāntīng","english":"Restaurant","bengali":"রেস্টুরেন্ট"},
+  {"no":38,"chinese":"差不多","pinyin":"chàbuduō","english":"Almost","bengali":"প্রায়"},
+  {"no":39,"chinese":"尝","pinyin":"cháng","english":"taste","bengali":"স্বাদ"},
+  {"no":40,"chinese":"长城","pinyin":"chángchéng","english":"The Great Wall","bengali":"মহান দেয়াল"},
+  {"no":41,"chinese":"长江","pinyin":"chángjiāng","english":"The Yangtze River","bengali":"ইয়াংজে নদী"},
+  {"no":42,"chinese":"场","pinyin":"chǎng","english":"site","bengali":"সাইট"},
+  {"no":43,"chinese":"超过","pinyin":"chāoguò","english":"Exceed","bengali":"অতিক্রম করা"},
+  {"no":44,"chinese":"厕所","pinyin":"cèsuǒ","english":"Toilet","bengali":"টয়লেট"},
+  {"no":45,"chinese":"成功","pinyin":"chénggōng","english":"Success","bengali":"সাফল্য"},
+  {"no":46,"chinese":"成为","pinyin":"chéngwéi","english":"Become","bengali":"হয়ে যাওয়া"},
+  {"no":47,"chinese":"诚实","pinyin":"chéngshí","english":"honest","bengali":"সৎ"},
+  {"no":48,"chinese":"乘坐","pinyin":"chéngzuò","english":"ride","bengali":"যাত্রা করা"},
+  {"no":49,"chinese":"吃惊","pinyin":"chījīng","english":"Be amazed","bengali":"বিস্মিত হওয়া"},
+  {"no":50,"chinese":"重新","pinyin":"chóngxīn","english":"again","bengali":"আবার"},
+  {"no":51,"chinese":"抽烟","pinyin":"chōuyān","english":"smoking","bengali":"ধূমপান"},
+  {"no":52,"chinese":"出差","pinyin":"chūchāi","english":"A business travel","bengali":"ব্যবসায়িক ভ্রমণ"},
+  {"no":53,"chinese":"出发","pinyin":"chūfā","english":"Set out","bengali":"যাত্রা শুরু করা"},
+  {"no":54,"chinese":"出生","pinyin":"chūshēng","english":"Birth","bengali":"জন্ম"},
+  {"no":55,"chinese":"出现","pinyin":"chūxiàn","english":"Appear","bengali":"উপস্থিত হওয়া"},
+  {"no":56,"chinese":"厨房","pinyin":"chúfáng","english":"Kitchen","bengali":"রান্নাঘর"},
+  {"no":57,"chinese":"传真","pinyin":"chuánzhēn","english":"Fax","bengali":"ফ্যাক্স"},
+  {"no":58,"chinese":"窗户","pinyin":"chuānghu","english":"Window","bengali":"জানালা"},
+  {"no":59,"chinese":"词语","pinyin":"cíyǔ","english":"terms, words","bengali":"শর্তাবলী, শব্দ"},
+  {"no":60,"chinese":"从来","pinyin":"cónglái","english":"Always","bengali":"সর্বদা"},
+  {"no":61,"chinese":"粗心","pinyin":"cūxīn","english":"careless","bengali":"অসতর্ক"},
+  {"no":62,"chinese":"存","pinyin":"cún","english":"Deposit","bengali":"জমা"},
+  {"no":63,"chinese":"错误","pinyin":"cuòwù","english":"error","bengali":"ত্রুটি"},
+  {"no":64,"chinese":"答案","pinyin":"dá'àn","english":"Answer","bengali":"উত্তর"},
+  {"no":65,"chinese":"打招呼","pinyin":"dǎzhāohu","english":"Say hello","bengali":"হ্যালো বলা"},
+  {"no":66,"chinese":"打扮","pinyin":"dǎban","english":"dress up","bengali":"সাজানো"},
+  {"no":67,"chinese":"打扰","pinyin":"dǎrǎo","english":"Disturb","bengali":"বিরক্ত করা"},
+  {"no":68,"chinese":"打印","pinyin":"dǎyìn","english":"Print","bengali":"ছাপা"},
+  {"no":69,"chinese":"打折","pinyin":"dǎzhé","english":"Discount","bengali":"ছাড়"},
+  {"no":70,"chinese":"打针","pinyin":"dǎzhēn","english":"To make an injection","bengali":"ইনজেকশন দেওয়া"},
+  {"no":71,"chinese":"大概","pinyin":"dàgài","english":"Probably","bengali":"সম্ভবত"},
+  {"no":72,"chinese":"大使馆","pinyin":"dàshǐguǎn","english":"Embassy","bengali":"দূতাবাস"},
+  {"no":73,"chinese":"大约","pinyin":"dàyuē","english":"about","bengali":"প্রায়"},
+  {"no":74,"chinese":"戴","pinyin":"dài","english":"wear","bengali":"পরিধান করা"},
+  {"no":75,"chinese":"大夫","pinyin":"dàifu","english":"Doctor","bengali":"ডাক্তার"},
+  {"no":76,"chinese":"当","pinyin":"dāng","english":"When","bengali":"যখন"},
+  {"no":77,"chinese":"当时","pinyin":"dāngshí","english":"at that time","bengali":"সেই সময়ে"},
+  {"no":78,"chinese":"刀","pinyin":"dāo","english":"knife","bengali":"ছুরি"},
+  {"no":79,"chinese":"导游","pinyin":"dǎoyóu","english":"Guide","bengali":"গাইড"},
+  {"no":80,"chinese":"倒","pinyin":"dào","english":"inverted","bengali":"উল্টানো"},
+  {"no":81,"chinese":"到处","pinyin":"dàochù","english":"everywhere","bengali":"সর্বত্র"},
+  {"no":82,"chinese":"到底","pinyin":"dàodǐ","english":"To the end","bengali":"শেষ পর্যন্ত"},
+  {"no":83,"chinese":"道歉","pinyin":"dàoqiàn","english":"apologize","bengali":"ক্ষমা চাওয়া"},
+  {"no":84,"chinese":"得意","pinyin":"déyì","english":"Proud","bengali":"গর্বিত"},
+  {"no":85,"chinese":"地点","pinyin":"dìdiǎn","english":"location","bengali":"অবস্থান"},
+  {"no":86,"chinese":"得（助动词）","pinyin":"děi","english":"have to","bengali":"করতে হবে"},
+  {"no":87,"chinese":"登机牌","pinyin":"dēngjīpái","english":"Boarding pass","bengali":"বোর্ডিং পাস"},
+  {"no":88,"chinese":"等 （动）","pinyin":"děng","english":"Wait (verb)","bengali":"অপেক্ষা করা"},
+  {"no":89,"chinese":"低","pinyin":"dī","english":"low","bengali":"নিম্ন"},
+  {"no":90,"chinese":"底","pinyin":"dǐ","english":"bottom","bengali":"নীচে"},
+  {"no":91,"chinese":"地球","pinyin":"dìqiú","english":"earth","bengali":"পৃথিবী"},
+  {"no":92,"chinese":"地址","pinyin":"dìzhǐ","english":"address","bengali":"ঠিকানা"},
+  {"no":93,"chinese":"掉","pinyin":"diào","english":"fall","bengali":"পড়া"},
+  {"no":94,"chinese":"调查","pinyin":"diàochá","english":"investigation","bengali":"তদন্ত"},
+  {"no":95,"chinese":"丢","pinyin":"diū","english":"lose","bengali":"হারানো"},
+  {"no":96,"chinese":"动作","pinyin":"dòngzuò","english":"action","bengali":"কর্ম"},
+  {"no":97,"chinese":"堵车","pinyin":"dǔchē","english":"Traffic jam","bengali":"যানজট"},
+  {"no":98,"chinese":"肚子","pinyin":"dùzi","english":"belly","bengali":"পেট"},
+  {"no":99,"chinese":"短信","pinyin":"duǎnxìn","english":"Short message","bengali":"সংক্ষিপ্ত বার্তা"},
+  {"no":100,"chinese":"对于","pinyin":"duìyú","english":"about","bengali":"সম্পর্কে"},
+  {"no":101,"chinese":"对话","pinyin":"duìhuà","english":"dialogue","bengali":"সংলাপ"},
+  {"no":102,"chinese":"对面","pinyin":"duìmiàn","english":"Opposite side","bengali":"বিপরীত দিক"},
+  {"no":103,"chinese":"而","pinyin":"ér","english":"and","bengali":"এবং"},
+  {"no":104,"chinese":"儿童","pinyin":"értóng","english":"children","bengali":"শিশু"},
+  {"no":105,"chinese":"发生","pinyin":"fāshēng","english":"Happen","bengali":"ঘটা"},
+  {"no":106,"chinese":"发展","pinyin":"fāzhǎn","english":"Development","bengali":"উন্নয়ন"},
+  {"no":107,"chinese":"法律","pinyin":"fǎlǜ","english":"Law","bengali":"আইন"},
+  {"no":108,"chinese":"翻译","pinyin":"fānyì","english":"translate","bengali":"অনুবাদ করা"},
+  {"no":109,"chinese":"烦恼","pinyin":"fánnǎo","english":"annoyance","bengali":"বিরক্তি"},
+  {"no":110,"chinese":"反对","pinyin":"fǎnduì","english":"Opposition","bengali":"বিরোধিতা"},
+  {"no":111,"chinese":"方法","pinyin":"fāngfǎ","english":"Method","bengali":"পদ্ধতি"},
+  {"no":112,"chinese":"方面","pinyin":"fāngmiàn","english":"Aspect","bengali":"দিক"},
+  {"no":113,"chinese":"方向","pinyin":"fāngxiàng","english":"direction","bengali":"দিক"},
+  {"no":114,"chinese":"房东","pinyin":"fángdōng","english":"landlord","bengali":"বাড়িওয়ালা"},
+  {"no":115,"chinese":"放弃","pinyin":"fàngqì","english":"give up","bengali":"ছেড়ে দেওয়া"},
+  {"no":116,"chinese":"放暑假","pinyin":"fàngshǔjià","english":"summer vacation","bengali":"গ্রীষ্মকালীন ছুটি"},
+  {"no":117,"chinese":"放松","pinyin":"fàngsōng","english":"Relax","bengali":"শিথিল করা"},
+  {"no":118,"chinese":"份","pinyin":"fèn","english":"share (measure word)","bengali":"ভাগ (পরিমাপ শব্দ)"},
+  {"no":119,"chinese":"丰富","pinyin":"fēngfù","english":"rich","bengali":"সমৃদ্ধ"},
+  {"no":120,"chinese":"否则","pinyin":"fǒuzé","english":"otherwise","bengali":"অন্যথায়"},
+  {"no":121,"chinese":"符合","pinyin":"fúhé","english":"accord with","bengali":"সামঞ্জস্যপূর্ণ"},
+  {"no":122,"chinese":"富","pinyin":"fù","english":"rich","bengali":"ধনী"},
+  {"no":123,"chinese":"付款","pinyin":"fùkuǎn","english":"pay","bengali":"পরিশোধ করা"},
+  {"no":124,"chinese":"父亲","pinyin":"fùqīn","english":"father","bengali":"পিতা"},
+  {"no":125,"chinese":"复印","pinyin":"fùyìn","english":"To copy","bengali":"কপি করা"},
+  {"no":126,"chinese":"复杂","pinyin":"fùzá","english":"complex","bengali":"জটিল"},
+  {"no":127,"chinese":"负责","pinyin":"fùzé","english":"Be responsible for","bengali":"দায়িত্বশীল হওয়া"},
+  {"no":128,"chinese":"改变","pinyin":"gǎibiàn","english":"change","bengali":"পরিবর্তন"},
+  {"no":129,"chinese":"干杯","pinyin":"gānbēi","english":"Cheers!","bengali":"চিয়ার্স!"},
+  {"no":130,"chinese":"赶","pinyin":"gǎn","english":"catch up with","bengali":"ধরা"},
+  {"no":131,"chinese":"敢","pinyin":"gǎn","english":"dare","bengali":"সাহস"},
+  {"no":132,"chinese":"感动","pinyin":"gǎndòng","english":"Be moved","bengali":"স্পর্শিত হওয়া"},
+  {"no":133,"chinese":"感觉","pinyin":"gǎnjué","english":"feel","bengali":"অনুভব করা"},
+  {"no":134,"chinese":"感情","pinyin":"gǎnqíng","english":"feeling","bengali":"অনুভূতি"},
+  {"no":135,"chinese":"感谢","pinyin":"gǎnxiè","english":"Thank","bengali":"ধন্যবাদ"},
+  {"no":136,"chinese":"干","pinyin":"gān","english":"dry","bengali":"শুকনো"},
+  {"no":137,"chinese":"刚","pinyin":"gāng","english":"just","bengali":"শুধু"},
+  {"no":138,"chinese":"高速公路","pinyin":"gāosùgōnglù","english":"Expressway","bengali":"এক্সপ্রেসওয়ে"},
+  {"no":139,"chinese":"胳膊","pinyin":"gēbo","english":"Arm","bengali":"বাহু"},
+  {"no":140,"chinese":"各","pinyin":"gè","english":"various","bengali":"বিভিন্ন"},
+  {"no":141,"chinese":"公里","pinyin":"gōnglǐ","english":"kilometre","bengali":"কিলোমিটার"},
+  {"no":142,"chinese":"工资","pinyin":"gōngzī","english":"wages","bengali":"মজুরি"},
+  {"no":143,"chinese":"功夫","pinyin":"gōngfu","english":"Kungfu","bengali":"কুংফু"},
+  {"no":144,"chinese":"共同","pinyin":"gòngtóng","english":"common","bengali":"সাধারণ"},
+  {"no":145,"chinese":"够","pinyin":"gòu","english":"enough","bengali":"যথেষ্ট"},
+  {"no":146,"chinese":"购物","pinyin":"gòuwù","english":"Shopping","bengali":"কেনাকাটা"},
+  {"no":147,"chinese":"估计","pinyin":"gūjì","english":"estimate","bengali":"অনুমান করা"},
+  {"no":148,"chinese":"鼓励","pinyin":"gǔlì","english":"encourage","bengali":"উৎসাহিত করা"},
+  {"no":149,"chinese":"顾客","pinyin":"gùkè","english":"customer","bengali":"গ্রাহক"},
+  {"no":150,"chinese":"故意","pinyin":"gùyì","english":"deliberately","bengali":"ইচ্ছাকৃতভাবে"},
+  {"no":151,"chinese":"挂","pinyin":"guà","english":"hang","bengali":"ঝুলানো"},
+  {"no":152,"chinese":"关键","pinyin":"guānjiàn","english":"key","bengali":"কী"},
+  {"no":153,"chinese":"观众","pinyin":"guānzhòng","english":"Audience","bengali":"দর্শক"},
+  {"no":154,"chinese":"管理","pinyin":"guǎnlǐ","english":"Administration","bengali":"প্রশাসন"},
+  {"no":155,"chinese":"光","pinyin":"guāng","english":"light","bengali":"আলো"},
+  {"no":156,"chinese":"广播","pinyin":"guǎngbō","english":"Radio broadcast","bengali":"রেডিও সম্প্রচার"},
+  {"no":157,"chinese":"广告","pinyin":"guǎnggào","english":"Advertisement","bengali":"বিজ্ঞাপন"},
+  {"no":158,"chinese":"逛","pinyin":"guàng","english":"Stroll","bengali":"ঘুরে বেড়ানো"},
+  {"no":159,"chinese":"规定","pinyin":"guīdìng","english":"Regulations","bengali":"নিয়মাবলী"},
+  {"no":160,"chinese":"国际","pinyin":"guójì","english":"international","bengali":"আন্তর্জাতিক"},
+  {"no":161,"chinese":"国籍","pinyin":"guójí","english":"nationality","bengali":"জাতীয়তা"},
+  {"no":162,"chinese":"果汁","pinyin":"guǒzhī","english":"fruit juice","bengali":"ফলের রস"},
+  {"no":163,"chinese":"过程","pinyin":"guòchéng","english":"process","bengali":"প্রক্রিয়া"},
+  {"no":164,"chinese":"海洋","pinyin":"hǎiyáng","english":"ocean","bengali":"মহাসাগর"},
+  {"no":165,"chinese":"害羞","pinyin":"hàixiū","english":"Shy","bengali":"লজ্জাশীল"},
+  {"no":166,"chinese":"寒假","pinyin":"hánjià","english":"The winter vacation","bengali":"শীতকালীন ছুটি"},
+  {"no":167,"chinese":"汗","pinyin":"hàn","english":"sweat","bengali":"ঘাম"},
+  {"no":168,"chinese":"航班","pinyin":"hángbān","english":"flight","bengali":"ফ্লাইট"},
+  {"no":169,"chinese":"好处","pinyin":"hǎochù","english":"benefit","bengali":"উপকার"},
+  {"no":170,"chinese":"好像","pinyin":"hǎoxiàng","english":"Be like, seem","bengali":"মনে হয়"},
+  {"no":171,"chinese":"号码","pinyin":"hàomǎ","english":"number","bengali":"সংখ্যা"},
+  {"no":172,"chinese":"合格","pinyin":"hégé","english":"qualified","bengali":"যোগ্য"},
+  {"no":173,"chinese":"合适","pinyin":"héshì","english":"appropriate","bengali":"উপযুক্ত"},
+  {"no":174,"chinese":"盒子","pinyin":"hézi","english":"Box","bengali":"বাক্স"},
+  {"no":175,"chinese":"厚","pinyin":"hòu","english":"thick","bengali":"পুরু"},
+  {"no":176,"chinese":"后悔","pinyin":"hòuhuǐ","english":"regret","bengali":"অনুতাপ করা"},
+  {"no":177,"chinese":"护士","pinyin":"hùshi","english":"Nurse","bengali":"নার্স"},
+  {"no":178,"chinese":"互联网","pinyin":"hùliánwǎng","english":"Internet","bengali":"ইন্টারনেট"},
+  {"no":179,"chinese":"互相","pinyin":"hùxiāng","english":"each other","bengali":"একে অপরকে"},
+  {"no":180,"chinese":"怀疑","pinyin":"huáiyí","english":"doubt","bengali":"সন্দেহ"},
+  {"no":181,"chinese":"回忆","pinyin":"huíyì","english":"Memory","bengali":"স্মৃতি"},
+  {"no":182,"chinese":"活动","pinyin":"huódòng","english":"activity","bengali":"কার্যকলাপ"},
+  {"no":183,"chinese":"活泼","pinyin":"huópō","english":"lively","bengali":"প্রাণবন্ত"},
+  {"no":184,"chinese":"火","pinyin":"huǒ","english":"fire","bengali":"আগুন"},
+  {"no":185,"chinese":"获得","pinyin":"huòdé","english":"Get","bengali":"পাওয়া"},
+  {"no":186,"chinese":"基础","pinyin":"jīchǔ","english":"Basics","bengali":"মৌলিক"},
+  {"no":187,"chinese":"激动","pinyin":"jīdòng","english":"Excited","bengali":"উত্তেজিত"},
+  {"no":188,"chinese":"积极","pinyin":"jījí","english":"positive","bengali":"ইতিবাচক"},
+  {"no":189,"chinese":"积累","pinyin":"jīlěi","english":"accumulation","bengali":"সঞ্চয়"},
+  {"no":190,"chinese":"及时","pinyin":"jíshí","english":"timely","bengali":"সময়মতো"},
+  {"no":191,"chinese":"即使","pinyin":"jíshǐ","english":"even if","bengali":"এমনকি যদি"},
+  {"no":192,"chinese":"寄","pinyin":"jì","english":"send","bengali":"পাঠানো"},
+  {"no":193,"chinese":"记者","pinyin":"jìzhě","english":"Reporter","bengali":"রিপোর্টার"},
+  {"no":194,"chinese":"计划","pinyin":"jìhuà","english":"plan","bengali":"পরিকল্পনা"},
+  {"no":195,"chinese":"既然","pinyin":"jìrán","english":"although","bengali":"যদিও"},
+  {"no":196,"chinese":"技术","pinyin":"jìshù","english":"technology","bengali":"প্রযুক্তি"},
+  {"no":197,"chinese":"继续","pinyin":"jìxù","english":"Continue","bengali":"চালিয়ে যাওয়া"},
+  {"no":198,"chinese":"家具","pinyin":"jiājù","english":"furniture","bengali":"আসবাবপত্র"},
+  {"no":199,"chinese":"加班","pinyin":"jiābān","english":"overtime work","bengali":"ওভারটাইম কাজ"},
+  {"no":200,"chinese":"加油站","pinyin":"jiāyóuzhàn","english":"Gas station","bengali":"গ্যাস স্টেশন"},
+  {"no":201,"chinese":"假","pinyin":"jiǎ","english":"false","bengali":"মিথ্যা"},
+  {"no":202,"chinese":"价格","pinyin":"jiàgé","english":"Price","bengali":"মূল্য"},
+  {"no":203,"chinese":"坚持","pinyin":"jiānchí","english":"Insist","bengali":"জোর করা"},
+  {"no":204,"chinese":"减肥","pinyin":"jiǎnféi","english":"Reduce weight","bengali":"ওজন কমানো"},
+  {"no":205,"chinese":"减少","pinyin":"jiǎnshǎo","english":"reduce","bengali":"হ্রাস করা"},
+  {"no":206,"chinese":"建议","pinyin":"jiànyì","english":"proposal","bengali":"প্রস্তাব"},
+  {"no":207,"chinese":"将来","pinyin":"jiānglái","english":"future","bengali":"ভবিষ্যত"},
+  {"no":208,"chinese":"奖金","pinyin":"jiǎngjīn","english":"bonus","bengali":"বোনাস"},
+  {"no":209,"chinese":"降低","pinyin":"jiàngdī","english":"reduce","bengali":"হ্রাস করা"},
+  {"no":210,"chinese":"降落","pinyin":"jiàngluò","english":"land","bengali":"অবতরণ"},
+  {"no":211,"chinese":"交","pinyin":"jiāo","english":"hand over","bengali":"হস্তান্তর করা"},
+  {"no":212,"chinese":"交流","pinyin":"jiāoliú","english":"Communication","bengali":"যোগাযোগ"},
+  {"no":213,"chinese":"交通","pinyin":"jiāotōng","english":"traffic","bengali":"যানবাহন"},
+  {"no":214,"chinese":"郊区","pinyin":"jiāoqū","english":"Suburb","bengali":"উপনগর"},
+  {"no":215,"chinese":"骄傲","pinyin":"jiāo'ào","english":"Proud","bengali":"গর্বিত"},
+  {"no":216,"chinese":"饺子","pinyin":"jiǎozi","english":"Dumplings","bengali":"ডাম্পলিং"},
+  {"no":217,"chinese":"教授","pinyin":"jiàoshòu","english":"professor","bengali":"অধ্যাপক"},
+  {"no":218,"chinese":"教育","pinyin":"jiàoyù","english":"education","bengali":"শিক্ষা"},
+  {"no":219,"chinese":"接受","pinyin":"jiēshòu","english":"accept","bengali":"গ্রহণ করা"},
+  {"no":220,"chinese":"接着","pinyin":"jiēzhe","english":"Next","bengali":"পরবর্তী"},
+  {"no":221,"chinese":"结果","pinyin":"jiéguǒ","english":"Result","bengali":"ফলাফল"},
+  {"no":222,"chinese":"节","pinyin":"jié","english":"section, festival","bengali":"অধ্যায়, উত্সব"},
+  {"no":223,"chinese":"节约","pinyin":"jiéyuē","english":"save","bengali":"সংরক্ষণ করা"},
+  {"no":224,"chinese":"解释","pinyin":"jiěshì","english":"explain","bengali":"ব্যাখ্যা করা"},
+  {"no":225,"chinese":"尽管","pinyin":"jǐnguǎn","english":"although","bengali":"যদিও"},
+  {"no":226,"chinese":"紧张","pinyin":"jǐnzhāng","english":"Nervous","bengali":"নার্ভাস"},
+  {"no":227,"chinese":"进行","pinyin":"jìnxíng","english":"in process of","bengali":"প্রক্রিয়ায়"},
+  {"no":228,"chinese":"禁止","pinyin":"jìnzhǐ","english":"prohibit","bengali":"নিষিদ্ধ করা"},
+  {"no":229,"chinese":"精彩","pinyin":"jīngcǎi","english":"Marvellous","bengali":"অসাধারণ"},
+  {"no":230,"chinese":"经济","pinyin":"jīngjì","english":"Economics","bengali":"অর্থনীতি"},
+  {"no":231,"chinese":"经历","pinyin":"jīnglì","english":"experience","bengali":"অভিজ্ঞতা"},
+  {"no":232,"chinese":"经验","pinyin":"jīngyàn","english":"experience","bengali":"অভিজ্ঞতা"},
+  {"no":233,"chinese":"京剧","pinyin":"jīngjù","english":"Beijing opera","bengali":"বেইজিং অপেরা"},
+  {"no":234,"chinese":"警察","pinyin":"jǐngchá","english":"Policeman","bengali":"পুলিশম্যান"},
+  {"no":235,"chinese":"景色","pinyin":"jǐngsè","english":"scenery","bengali":"দৃশ্য"},
+  {"no":236,"chinese":"竟然","pinyin":"jìngrán","english":"Unexpectedly","bengali":"অপ্রত্যাশিতভাবে"},
+  {"no":237,"chinese":"竞争","pinyin":"jìngzhēng","english":"compete","bengali":"প্রতিযোগিতা করা"},
+  {"no":238,"chinese":"镜子","pinyin":"jìngzi","english":"Mirror","bengali":"আয়না"},
+  {"no":239,"chinese":"究竟","pinyin":"jiūjìng","english":"exactly","bengali":"ঠিক"},
+  {"no":240,"chinese":"举","pinyin":"jǔ","english":"lift","bengali":"উত্তোলন করা"},
+  {"no":241,"chinese":"举办","pinyin":"jǔbàn","english":"hold","bengali":"অনুষ্ঠিত করা"},
+  {"no":242,"chinese":"举行","pinyin":"jǔxíng","english":"hold","bengali":"অনুষ্ঠিত করা"},
+  {"no":243,"chinese":"拒绝","pinyin":"jùjué","english":"refuse","bengali":"অস্বীকার করা"},
+  {"no":244,"chinese":"距离","pinyin":"jùlí","english":"distance","bengali":"দূরত্ব"},
+  {"no":245,"chinese":"聚会","pinyin":"jùhuì","english":"Party","bengali":"পার্টি"},
+  {"no":246,"chinese":"开玩笑","pinyin":"kāiwánxiào","english":"Make fun of","bengali":"মজা করা"},
+  {"no":247,"chinese":"开心","pinyin":"kāixīn","english":"Happy","bengali":"খুশি"},
+  {"no":248,"chinese":"看法","pinyin":"kànfǎ","english":"view","bengali":"দৃশ্য"},
+  {"no":249,"chinese":"考虑","pinyin":"kǎolǜ","english":"Consider","bengali":"বিবেচনা করা"},
+  {"no":250,"chinese":"烤鸭","pinyin":"kǎoyā","english":"Roasted Duck","bengali":"রোস্টেড ডাক"},
+  {"no":251,"chinese":"棵","pinyin":"kē","english":"Tree (measure word)","bengali":"গাছ (পরিমাপ শব্দ)"},
+  {"no":252,"chinese":"科学","pinyin":"kēxué","english":"science","bengali":"বিজ্ঞান"},
+  {"no":253,"chinese":"咳嗽","pinyin":"késou","english":"cough","bengali":"কাশি"},
+  {"no":254,"chinese":"可怜","pinyin":"kělián","english":"Poor","bengali":"দরিদ্র"},
+  {"no":255,"chinese":"可是","pinyin":"kěshì","english":"however","bengali":"তবে"},
+  {"no":256,"chinese":"可惜","pinyin":"kěxī","english":"unfortunately","bengali":"দুর্ভাগ্যবশত"},
+  {"no":257,"chinese":"客厅","pinyin":"kètīng","english":"A living room","bengali":"লিভিং রুম"},
+  {"no":258,"chinese":"肯定","pinyin":"kěndìng","english":"sure","bengali":"নিশ্চিত"},
+  {"no":259,"chinese":"空","pinyin":"kōng","english":"empty","bengali":"খালি"},
+  {"no":260,"chinese":"空气","pinyin":"kōngqì","english":"air","bengali":"বায়ু"},
+  {"no":261,"chinese":"恐怕","pinyin":"kǒngpà","english":"I'm afraid","bengali":"আমি ভয় পাই"},
+  {"no":262,"chinese":"苦","pinyin":"kǔ","english":"bitter","bengali":"তিতা"},
+  {"no":263,"chinese":"矿泉水","pinyin":"kuàngquánshuǐ","english":"Mineral water","bengali":"খনিজ জল"},
+  {"no":264,"chinese":"困","pinyin":"kùn","english":"sleepy","bengali":"ঘুমপাড়া"},
+  {"no":265,"chinese":"困难","pinyin":"kùnnan","english":"difficulty","bengali":"অসুবিধা"},
+  {"no":266,"chinese":"拉","pinyin":"lā","english":"pull","bengali":"টানা"},
+  {"no":267,"chinese":"垃圾桶","pinyin":"lājītǒng","english":"Trash","bengali":"আবর্জনা"},
+  {"no":268,"chinese":"辣","pinyin":"là","english":"spicy","bengali":"মশলাদার"},
+  {"no":269,"chinese":"来自","pinyin":"láizì","english":"Come from","bengali":"থেকে আসা"},
+  {"no":270,"chinese":"来不及","pinyin":"láibují","english":"There's not enough time","bengali":"যথেষ্ট সময় নেই"},
+  {"no":271,"chinese":"来得及","pinyin":"láidejí","english":"In time","bengali":"সময়ে"},
+  {"no":272,"chinese":"懒","pinyin":"lǎn","english":"lazy","bengali":"অলস"},
+  {"no":273,"chinese":"浪费","pinyin":"làngfèi","english":"Waste","bengali":"বর্জ্য"},
+  {"no":274,"chinese":"浪漫","pinyin":"làngmàn","english":"romantic","bengali":"রোমান্টিক"},
+  {"no":275,"chinese":"老虎","pinyin":"lǎohǔ","english":"Tiger","bengali":"বাঘ"},
+  {"no":276,"chinese":"冷静","pinyin":"lěngjìng","english":"calm down","bengali":"শান্ত হও"},
+  {"no":277,"chinese":"理发","pinyin":"lǐfà","english":"Haircut","bengali":"চুল কাটা"},
+  {"no":278,"chinese":"理解","pinyin":"lǐjiě","english":"Understand","bengali":"বুঝতে"},
+  {"no":279,"chinese":"理想","pinyin":"lǐxiǎng","english":"ideal","bengali":"আদর্শ"},
+  {"no":280,"chinese":"礼貌","pinyin":"lǐmào","english":"politeness","bengali":"সভ্যতা"},
+  {"no":281,"chinese":"礼拜天","pinyin":"lǐbàitiān","english":"Sunday","bengali":"রবিবার"},
+  {"no":282,"chinese":"厉害","pinyin":"lìhai","english":"Fierce","bengali":"ভয়ানক"},
+  {"no":283,"chinese":"力气","pinyin":"lìqi","english":"Strength","bengali":"শক্তি"},
+  {"no":284,"chinese":"例如","pinyin":"lìrú","english":"for example","bengali":"উদাহরণস্বরূপ"},
+  {"no":285,"chinese":"俩","pinyin":"liǎ","english":"Two","bengali":"দুই"},
+  {"no":286,"chinese":"连","pinyin":"lián","english":"even","bengali":"এমনকি"},
+  {"no":287,"chinese":"联系","pinyin":"liánxì","english":"contact","bengali":"যোগাযোগ"},
+  {"no":288,"chinese":"凉快","pinyin":"liángkuai","english":"Pleasantly cool","bengali":"আনন্দদায়ক শীতল"},
+  {"no":289,"chinese":"零钱","pinyin":"língqián","english":"Small change","bengali":"ছোট পরিবর্তন"},
+  {"no":290,"chinese":"另外","pinyin":"lìngwài","english":"in addition","bengali":"এছাড়াও"},
+  {"no":291,"chinese":"留","pinyin":"liú","english":"stay","bengali":"থাকা"},
+  {"no":292,"chinese":"流利","pinyin":"liúlì","english":"fluent","bengali":"সাবলীল"},
+  {"no":293,"chinese":"流行","pinyin":"liúxíng","english":"Popular","bengali":"জনপ্রিয়"},
+  {"no":294,"chinese":"乱","pinyin":"luàn","english":"chaos","bengali":"বিশৃঙ্খলা"},
+  {"no":295,"chinese":"旅行","pinyin":"lǚxíng","english":"travel","bengali":"ভ্রমণ"},
+  {"no":296,"chinese":"律师","pinyin":"lǜshī","english":"Lawyer","bengali":"আইনজীবী"},
+  {"no":297,"chinese":"麻烦","pinyin":"máfan","english":"trouble","bengali":"সমস্যা"},
+  {"no":298,"chinese":"马虎","pinyin":"mǎhu","english":"Careless","bengali":"অসতর্ক"},
+  {"no":299,"chinese":"满","pinyin":"mǎn","english":"full","bengali":"পূর্ণ"},
+  {"no":300,"chinese":"毛","pinyin":"máo","english":"hair","bengali":"চুল"},
+  {"no":301,"chinese":"毛巾","pinyin":"máojīn","english":"Towel","bengali":"তোয়ালে"},
+  {"no":302,"chinese":"美丽","pinyin":"měilì","english":"beautiful","bengali":"সুন্দর"},
+  {"no":303,"chinese":"梦","pinyin":"mèng","english":"dream","bengali":"স্বপ্ন"},
+  {"no":304,"chinese":"迷路","pinyin":"mílù","english":"Get lost","bengali":"হারিয়ে যাওয়া"},
+  {"no":305,"chinese":"密码","pinyin":"mìmǎ","english":"Password","bengali":"পাসওয়ার্ড"},
+  {"no":306,"chinese":"免费","pinyin":"miǎnfèi","english":"Free of charge","bengali":"বিনামূল্যে"},
+  {"no":307,"chinese":"秒","pinyin":"miǎo","english":"second","bengali":"সেকেন্ড"},
+  {"no":308,"chinese":"民族","pinyin":"mínzú","english":"Nation","bengali":"জাতি"},
+  {"no":309,"chinese":"母亲","pinyin":"mǔqīn","english":"mother","bengali":"মা"},
+  {"no":310,"chinese":"目的","pinyin":"mùdì","english":"objective","bengali":"উদ্দেশ্য"},
+  {"no":311,"chinese":"耐心","pinyin":"nàixīn","english":"patience","bengali":"ধৈর্য"},
+  {"no":312,"chinese":"难道","pinyin":"nándào","english":"could it be said that …","bengali":"বলা যায় কি ..."},
+  {"no":313,"chinese":"难受","pinyin":"nánshòu","english":"Uncomfortable","bengali":"অস্বস্তিকর"},
+  {"no":314,"chinese":"内","pinyin":"nèi","english":"within","bengali":"মধ্যে"},
+  {"no":315,"chinese":"内容","pinyin":"nèiróng","english":"content","bengali":"বিষয়বস্তু"},
+  {"no":316,"chinese":"能力","pinyin":"nénglì","english":"ability","bengali":"ক্ষমতা"},
+  {"no":317,"chinese":"年龄","pinyin":"niánlíng","english":"Age","bengali":"বয়স"},
+  {"no":318,"chinese":"弄","pinyin":"nòng","english":"get, make","bengali":"পাওয়া, তৈরি করা"},
+  {"no":319,"chinese":"暖和","pinyin":"nuǎnhuo","english":"warm","bengali":"উষ্ণ"},
+  {"no":320,"chinese":"偶尔","pinyin":"ǒu'ěr","english":"occasionally","bengali":"মাঝে মাঝে"},
+  {"no":321,"chinese":"排队","pinyin":"páiduì","english":"queue; stand in a line","bengali":"লাইন; লাইনে দাঁড়ানো"},
+  {"no":322,"chinese":"排列","pinyin":"páiliè","english":"array","bengali":"অ্যারে"},
+  {"no":323,"chinese":"判断","pinyin":"pànduàn","english":"judge","bengali":"বিচার করা"},
+  {"no":324,"chinese":"陪","pinyin":"péi","english":"accompany","bengali":"সঙ্গী করা"},
+  {"no":325,"chinese":"批评","pinyin":"pīpíng","english":"criticism","bengali":"সমালোচনা"},
+  {"no":326,"chinese":"皮肤","pinyin":"pífū","english":"skin","bengali":"ত্বক"},
+  {"no":327,"chinese":"脾气","pinyin":"píqi","english":"Bad temper","bengali":"খারাপ মেজাজ"},
+  {"no":328,"chinese":"篇","pinyin":"piān","english":"piece","bengali":"টুকরো"},
+  {"no":329,"chinese":"骗","pinyin":"piàn","english":"fool","bengali":"মূর্খ করা"},
+  {"no":330,"chinese":"乒乓球","pinyin":"pīngpāngqiú","english":"Table Tennis","bengali":"টেবিল টেনিস"},
+  {"no":331,"chinese":"平时","pinyin":"píngshí","english":"peacetime","bengali":"শান্তিকাল"},
+  {"no":332,"chinese":"破","pinyin":"pò","english":"broken","bengali":"ভাঙা"},
+  {"no":333,"chinese":"葡萄","pinyin":"pútao","english":"Grape","bengali":"আঙ্গুর"},
+  {"no":334,"chinese":"普遍","pinyin":"pǔbiàn","english":"universal","bengali":"সার্বজনীন"},
+  {"no":335,"chinese":"普通话","pinyin":"pǔtōnghuà","english":"Mandarin","bengali":"ম্যান্ডারিন"},
+  {"no":336,"chinese":"其次","pinyin":"qícì","english":"Secondly","bengali":"দ্বিতীয়ত"},
+  {"no":337,"chinese":"其中","pinyin":"qízhōng","english":"among","bengali":"মধ্যে"},
+  {"no":338,"chinese":"气候","pinyin":"qìhòu","english":"climate","bengali":"জলবায়ু"},
+  {"no":339,"chinese":"千万","pinyin":"qiānwàn","english":"Must","bengali":"অবশ্যই"},
+  {"no":340,"chinese":"签证","pinyin":"qiānzhèng","english":"visa","bengali":"ভিসা"},
+  {"no":341,"chinese":"敲","pinyin":"qiāo","english":"knock","bengali":"নক করা"},
+  {"no":342,"chinese":"桥","pinyin":"qiáo","english":"Bridge","bengali":"সেতু"},
+  {"no":343,"chinese":"巧克力","pinyin":"qiǎokèlì","english":"Chocolates","bengali":"চকোলেট"},
+  {"no":344,"chinese":"亲戚","pinyin":"qīnqi","english":"Relative","bengali":"আত্মীয়"},
+  {"no":345,"chinese":"轻","pinyin":"qīng","english":"light","bengali":"হালকা"},
+  {"no":346,"chinese":"轻松","pinyin":"qīngsōng","english":"Relaxed","bengali":"শিথিল"},
+  {"no":347,"chinese":"情况","pinyin":"qíngkuàng","english":"Situation","bengali":"পরিস্থিতি"},
+  {"no":348,"chinese":"穷","pinyin":"qióng","english":"poor","bengali":"দরিদ্র"},
+  {"no":349,"chinese":"区别","pinyin":"qūbié","english":"Difference","bengali":"পার্থক্য"},
+  {"no":350,"chinese":"取","pinyin":"qǔ","english":"take","bengali":"নেওয়া"},
+  {"no":351,"chinese":"全部","pinyin":"quánbù","english":"whole","bengali":"সম্পূর্ণ"},
+  {"no":352,"chinese":"缺点","pinyin":"quēdiǎn","english":"shortcoming","bengali":"দুর্বলতা"},
+  {"no":353,"chinese":"缺少","pinyin":"quēshǎo","english":"Lack","bengali":"অভাব"},
+  {"no":354,"chinese":"却","pinyin":"què","english":"but","bengali":"কিন্তু"},
+  {"no":355,"chinese":"确实","pinyin":"quèshí","english":"Exactly","bengali":"ঠিক"},
+  {"no":356,"chinese":"然而","pinyin":"rán'ér","english":"however","bengali":"তবে"},
+  {"no":357,"chinese":"热闹","pinyin":"rènao","english":"lively","bengali":"প্রাণবন্ত"},
+  {"no":358,"chinese":"任何","pinyin":"rènhé","english":"whatever, any","bengali":"যাই হোক না কেন"},
+  {"no":359,"chinese":"任务","pinyin":"rènwu","english":"task","bengali":"কাজ"},
+  {"no":360,"chinese":"扔","pinyin":"rēng","english":"throw","bengali":"ছুড়ে ফেলা"},
+  {"no":361,"chinese":"仍然","pinyin":"réngrán","english":"still","bengali":"এখনও"},
+  {"no":362,"chinese":"日记","pinyin":"rìjì","english":"diary","bengali":"ডায়েরি"},
+  {"no":363,"chinese":"入口","pinyin":"rùkǒu","english":"Entrance","bengali":"প্রবেশদ্বার"},
+  {"no":364,"chinese":"散步","pinyin":"sànbù","english":"Take a walk","bengali":"হাঁটা"},
+  {"no":365,"chinese":"森林","pinyin":"sēnlín","english":"Forest","bengali":"বন"},
+  {"no":366,"chinese":"沙发","pinyin":"shāfā","english":"Sofa","bengali":"সোফা"},
+  {"no":367,"chinese":"商量","pinyin":"shāngliang","english":"discuss","bengali":"আলোচনা করা"},
+  {"no":368,"chinese":"伤心","pinyin":"shāngxīn","english":"Sad","bengali":"দুঃখিত"},
+  {"no":369,"chinese":"稍微","pinyin":"shāowēi","english":"slightly","bengali":"সামান্য"},
+  {"no":370,"chinese":"勺子","pinyin":"sháozi","english":"Spoon","bengali":"চামচ"},
+  {"no":371,"chinese":"社会","pinyin":"shèhuì","english":"Sociology","bengali":"সমাজবিজ্ঞান"},
+  {"no":372,"chinese":"深","pinyin":"shēn","english":"deep","bengali":"গভীর"},
+  {"no":373,"chinese":"申请","pinyin":"shēnqǐng","english":"Apply","bengali":"আবেদন করা"},
+  {"no":374,"chinese":"甚至","pinyin":"shènzhì","english":"Even to the extent that","bengali":"এমনকি পর্যন্ত যে"},
+  {"no":375,"chinese":"生活","pinyin":"shēnghuó","english":"Life","bengali":"জীবন"},
+  {"no":376,"chinese":"生命","pinyin":"shēngmìng","english":"life","bengali":"জীবন"},
+  {"no":377,"chinese":"生意","pinyin":"shēngyi","english":"business","bengali":"ব্যবসা"},
+  {"no":378,"chinese":"省","pinyin":"shěng","english":"province","bengali":"প্রদেশ"},
+  {"no":379,"chinese":"剩","pinyin":"shèng","english":"Left","bengali":"বাকি"},
+  {"no":380,"chinese":"失败","pinyin":"shībài","english":"fail","bengali":"ব্যর্থ হওয়া"},
+  {"no":381,"chinese":"失望","pinyin":"shīwàng","english":"Disappointment","bengali":"হতাশা"},
+  {"no":382,"chinese":"师傅","pinyin":"shīfu","english":"Master worker","bengali":"মাস্টার ওয়ার্কার"},
+  {"no":383,"chinese":"十分","pinyin":"shífēn","english":"very","bengali":"খুব"},
+  {"no":384,"chinese":"实际","pinyin":"shíjì","english":"Actual","bengali":"প্রকৃত"},
+  {"no":385,"chinese":"实在","pinyin":"shízài","english":"really","bengali":"সত্যিই"},
+  {"no":386,"chinese":"使","pinyin":"shǐ","english":"make","bengali":"তৈরি করা"},
+  {"no":387,"chinese":"使用","pinyin":"shǐyòng","english":"Use","bengali":"ব্যবহার"},
+  {"no":388,"chinese":"是否","pinyin":"shìfǒu","english":"Whether","bengali":"কিনা"},
+  {"no":389,"chinese":"适合","pinyin":"shìhé","english":"Fit","bengali":"উপযোগী"},
+  {"no":390,"chinese":"适应","pinyin":"shìyìng","english":"Adapt","bengali":"অভিযোজিত করা"},
+  {"no":391,"chinese":"世纪","pinyin":"shìjì","english":"century","bengali":"শতাব্দী"},
+  {"no":392,"chinese":"收","pinyin":"shōu","english":"collect","bengali":"সংগ্রহ করা"},
+  {"no":393,"chinese":"收入","pinyin":"shōurù","english":"income","bengali":"আয়"},
+  {"no":394,"chinese":"收拾","pinyin":"shōushi","english":"Tidy","bengali":"সাজানো"},
+  {"no":395,"chinese":"首都","pinyin":"shǒudū","english":"capital","bengali":"রাজধানী"},
+  {"no":396,"chinese":"首先","pinyin":"shǒuxiān","english":"First","bengali":"প্রথম"},
+  {"no":397,"chinese":"受不了","pinyin":"shòubuliǎo","english":"Cannot bear sth","bengali":"সহ্য করতে পারেন না"},
+  {"no":398,"chinese":"受到","pinyin":"shòudào","english":"Suffer","bengali":"ভোগা"},
+  {"no":399,"chinese":"售货员","pinyin":"shòuhuòyuán","english":"Salesperson","bengali":"বিক্রয়কর্মী"},
+  {"no":400,"chinese":"输","pinyin":"shū","english":"lose, fail","bengali":"হারানো, ব্যর্থ হওয়া"},
+  {"no":401,"chinese":"熟悉","pinyin":"shúxī","english":"be familiar with","bengali":"পরিচিত হওয়া"},
+  {"no":402,"chinese":"数量","pinyin":"shùliàng","english":"Number","bengali":"সংখ্যা"},
+  {"no":403,"chinese":"数字","pinyin":"shùzì","english":"number","bengali":"সংখ্যা"},
+  {"no":404,"chinese":"帅","pinyin":"shuài","english":"Handsome","bengali":"সুদর্শন"},
+  {"no":405,"chinese":"顺便","pinyin":"shùnbiàn","english":"Incidentally","bengali":"ঘটনাক্রমে"},
+  {"no":406,"chinese":"顺利","pinyin":"shùnlì","english":"smoothly","bengali":"মসৃণভাবে"},
+  {"no":407,"chinese":"顺序","pinyin":"shùnxù","english":"order","bengali":"ক্রম"},
+  {"no":408,"chinese":"说明","pinyin":"shuōmíng","english":"Explain","bengali":"ব্যাখ্যা করা"},
+  {"no":409,"chinese":"硕士","pinyin":"shuòshì","english":"master","bengali":"মাস্টার"},
+  {"no":410,"chinese":"死","pinyin":"sǐ","english":"die","bengali":"মরা"},
+  {"no":411,"chinese":"速度","pinyin":"sùdù","english":"speed","bengali":"গতি"},
+  {"no":412,"chinese":"塑料袋","pinyin":"sùliàodài","english":"Plastic bag","bengali":"প্লাস্টিকের ব্যাগ"},
+  {"no":413,"chinese":"酸","pinyin":"suān","english":"acid","bengali":"অ্যাসিড"},
+  {"no":414,"chinese":"随便","pinyin":"suíbiàn","english":"casual","bengali":"নৈমিত্তিক"},
+  {"no":415,"chinese":"随着","pinyin":"suízhe","english":"along with","bengali":"সাথে"},
+  {"no":416,"chinese":"孙子","pinyin":"sūnzi","english":"Grandson","bengali":"নাতি"},
+  {"no":417,"chinese":"所有","pinyin":"suǒyǒu","english":"All","bengali":"সব"},
+  {"no":418,"chinese":"台","pinyin":"tái","english":"platform","bengali":"প্ল্যাটফর্ম"},
+  {"no":419,"chinese":"抬","pinyin":"tái","english":"Lift","bengali":"উত্তোলন"},
+  {"no":420,"chinese":"态度","pinyin":"tàidu","english":"attitude","bengali":"মনোভাব"},
+  {"no":421,"chinese":"谈","pinyin":"tán","english":"talk","bengali":"কথা বলা"},
+  {"no":422,"chinese":"弹钢琴","pinyin":"tángāngqín","english":"Play the piano","bengali":"পিয়ানো বাজানো"},
+  {"no":423,"chinese":"汤","pinyin":"tāng","english":"soup","bengali":"স্যুপ"},
+  {"no":424,"chinese":"糖","pinyin":"táng","english":"sugar","bengali":"চিনি"},
+  {"no":425,"chinese":"躺","pinyin":"tǎng","english":"lie","bengali":"শুয়ে থাকা"},
+  {"no":426,"chinese":"趟","pinyin":"tàng","english":"Trip","bengali":"ভ্রমণ"},
+  {"no":427,"chinese":"讨论","pinyin":"tǎolùn","english":"discuss","bengali":"আলোচনা করা"},
+  {"no":428,"chinese":"讨厌","pinyin":"tǎoyàn","english":"Hate","bengali":"ঘৃণা করা"},
+  {"no":429,"chinese":"特点","pinyin":"tèdiǎn","english":"Characteristic","bengali":"বৈশিষ্ট্য"},
+  {"no":430,"chinese":"提","pinyin":"tí","english":"carry","bengali":"বহন করা"},
+  {"no":431,"chinese":"提供","pinyin":"tígōng","english":"provide","bengali":"সরবরাহ করা"},
+  {"no":432,"chinese":"提前","pinyin":"tíqián","english":"in advance","bengali":"অগ্রিম"},
+  {"no":433,"chinese":"提醒","pinyin":"tíxǐng","english":"remind","bengali":"স্মরণ করিয়ে দেওয়া"},
+  {"no":434,"chinese":"填空","pinyin":"tiánkòng","english":"Fill in the blanks","bengali":"ফাঁকা পূরণ করা"},
+  {"no":435,"chinese":"条件","pinyin":"tiáojiàn","english":"condition","bengali":"অবস্থা"},
+  {"no":436,"chinese":"停","pinyin":"tíng","english":"Stop","bengali":"থামা"},
+  {"no":437,"chinese":"挺","pinyin":"tǐng","english":"quite","bengali":"বেশ"},
+  {"no":438,"chinese":"通过","pinyin":"tōngguò","english":"through","bengali":"মাধ্যমে"},
+  {"no":439,"chinese":"通知","pinyin":"tōngzhī","english":"notice","bengali":"বিজ্ঞপ্তি"},
+  {"no":440,"chinese":"同时","pinyin":"tóngshí","english":"meanwhile","bengali":"একইসাথে"},
+  {"no":441,"chinese":"同情","pinyin":"tóngqíng","english":"Sympathy","bengali":"সহানুভূতি"},
+  {"no":442,"chinese":"推","pinyin":"tuī","english":"push","bengali":"ধাক্কা"},
+  {"no":443,"chinese":"推迟","pinyin":"tuīchí","english":"delay","bengali":"বিলম্ব"},
+  {"no":444,"chinese":"脱","pinyin":"tuō","english":"take off","bengali":"খুলে ফেলা"},
+  {"no":445,"chinese":"袜子","pinyin":"wàzi","english":"Socks","bengali":"মোজা"},
+  {"no":446,"chinese":"完全","pinyin":"wánquán","english":"completely","bengali":"সম্পূর্ণভাবে"},
+  {"no":447,"chinese":"往往","pinyin":"wǎngwǎng","english":"Often","bengali":"প্রায়শই"},
+  {"no":448,"chinese":"网球","pinyin":"wǎngqiú","english":"Tennis","bengali":"টেনিস"},
+  {"no":449,"chinese":"网站","pinyin":"wǎngzhàn","english":"website","bengali":"ওয়েবসাইট"},
+  {"no":450,"chinese":"危险","pinyin":"wēixiǎn","english":"danger","bengali":"বিপদ"},
+  {"no":451,"chinese":"味道","pinyin":"wèidào","english":"taste","bengali":"স্বাদ"},
+  {"no":452,"chinese":"卫生间","pinyin":"wèishēngjiān","english":"toilet","bengali":"টয়লেট"},
+  {"no":453,"chinese":"温度","pinyin":"wēndù","english":"temperature","bengali":"তাপমাত্রা"},
+  {"no":454,"chinese":"文章","pinyin":"wénzhāng","english":"Article","bengali":"নিবন্ধ"},
+  {"no":455,"chinese":"污染","pinyin":"wūrǎn","english":"contaminated","bengali":"দূষিত"},
+  {"no":456,"chinese":"无","pinyin":"wú","english":"nothing","bengali":"কিছু না"},
+  {"no":457,"chinese":"无聊","pinyin":"wúliáo","english":"Boring","bengali":"বিরক্তিকর"},
+  {"no":458,"chinese":"无论","pinyin":"wúlùn","english":"no matter what","bengali":"যাই হোক না কেন"},
+  {"no":459,"chinese":"误会","pinyin":"wùhuì","english":"Misunderstanding","bengali":"ভুল বোঝাবুঝি"},
+  {"no":460,"chinese":"西红柿","pinyin":"xīhóngshì","english":"Tomato","bengali":"টমেটো"},
+  {"no":461,"chinese":"吸引","pinyin":"xīyǐn","english":"Attract","bengali":"আকর্ষণ করা"},
+  {"no":462,"chinese":"咸","pinyin":"xián","english":"salty","bengali":"লবণাক্ত"},
+  {"no":463,"chinese":"现金","pinyin":"xiànjīn","english":"cash","bengali":"নগদ"},
+  {"no":464,"chinese":"羡慕","pinyin":"xiànmù","english":"Envy","bengali":"ঈর্ষা"},
+  {"no":465,"chinese":"香","pinyin":"xiāng","english":"fragrant","bengali":"সুগন্ধি"},
+  {"no":466,"chinese":"相反","pinyin":"xiāngfǎn","english":"Contrary","bengali":"বিপরীত"},
+  {"no":467,"chinese":"相同","pinyin":"xiāngtóng","english":"identical","bengali":"অভিন্ন"},
+  {"no":468,"chinese":"详细","pinyin":"xiángxì","english":"detailed","bengali":"বিস্তারিত"},
+  {"no":469,"chinese":"响","pinyin":"xiǎng","english":"ring","bengali":"রিং"},
+  {"no":470,"chinese":"橡皮","pinyin":"xiàngpí","english":"rubber","bengali":"রাবার"},
+  {"no":471,"chinese":"消息","pinyin":"xiāoxi","english":"message","bengali":"বার্তা"},
+  {"no":472,"chinese":"小吃","pinyin":"xiǎochī","english":"snack","bengali":"নাশতা"},
+  {"no":473,"chinese":"小伙子","pinyin":"xiǎohuǒzi","english":"Young fellow","bengali":"যুবক"},
+  {"no":474,"chinese":"小说","pinyin":"xiǎoshuō","english":"Novel","bengali":"উপন্যাস"},
+  {"no":475,"chinese":"笑话","pinyin":"xiàohua","english":"joke","bengali":"রসিকতা"},
+  {"no":476,"chinese":"效果","pinyin":"xiàoguǒ","english":"Effect","bengali":"প্রভাব"},
+  {"no":477,"chinese":"辛苦","pinyin":"xīnkǔ","english":"hard","bengali":"কঠিন"},
+  {"no":478,"chinese":"心情","pinyin":"xīnqíng","english":"mood","bengali":"মেজাজ"},
+  {"no":479,"chinese":"信封","pinyin":"xìnfēng","english":"envelope","bengali":"খাম"},
+  {"no":480,"chinese":"信息","pinyin":"xìnxī","english":"information","bengali":"তথ্য"},
+  {"no":481,"chinese":"信心","pinyin":"xìnxīn","english":"confidence","bengali":"আত্মবিশ্বাস"},
+  {"no":482,"chinese":"兴奋","pinyin":"xīngfèn","english":"Excitement","bengali":"উত্তেজনা"},
+  {"no":483,"chinese":"行","pinyin":"xíng","english":"That's ok","bengali":"ঠিক আছে"},
+  {"no":484,"chinese":"醒","pinyin":"xǐng","english":"wake up","bengali":"জাগানো"},
+  {"no":485,"chinese":"性别","pinyin":"xìngbié","english":"Gender","bengali":"লিঙ্গ"},
+  {"no":486,"chinese":"性格","pinyin":"xìnggé","english":"character","bengali":"চরিত্র"},
+  {"no":487,"chinese":"幸福","pinyin":"xìngfú","english":"happiness","bengali":"সুখ"},
+  {"no":488,"chinese":"修理","pinyin":"xiūlǐ","english":"repair","bengali":"মেরামত"},
+  {"no":489,"chinese":"许多","pinyin":"xǔduō","english":"many","bengali":"অনেক"},
+  {"no":490,"chinese":"学期","pinyin":"xuéqī","english":"Semester","bengali":"সেমিস্টার"},
+  {"no":491,"chinese":"压力","pinyin":"yālì","english":"pressure","bengali":"চাপ"},
+  {"no":492,"chinese":"牙膏","pinyin":"yágāo","english":"toothpaste","bengali":"টুথপেস্ট"},
+  {"no":493,"chinese":"亚洲","pinyin":"yàzhōu","english":"Asia","bengali":"এশিয়া"},
+  {"no":494,"chinese":"呀","pinyin":"ya","english":"ah","bengali":"আহ"},
+  {"no":495,"chinese":"盐","pinyin":"yán","english":"salt","bengali":"লবণ"},
+  {"no":496,"chinese":"严格","pinyin":"yángé","english":"strict","bengali":"কঠোর"},
+  {"no":497,"chinese":"严重","pinyin":"yánzhòng","english":"serious","bengali":"গুরুতর"},
+  {"no":498,"chinese":"研究","pinyin":"yánjiū","english":"research","bengali":"গবেষণা"},
+  {"no":499,"chinese":"演出","pinyin":"yǎnchū","english":"show","bengali":"শো"},
+  {"no":500,"chinese":"演员","pinyin":"yǎnyuán","english":"performer, actor","bengali":"অভিনয়কারী, অভিনেতা"},
+  {"no":501,"chinese":"眼镜","pinyin":"yǎnjìng","english":"glasses","bengali":"চশমা"},
+  {"no":502,"chinese":"阳光","pinyin":"yángguāng","english":"Sunshine","bengali":"সূর্যালোক"},
+  {"no":503,"chinese":"养成","pinyin":"yǎngchéng","english":"Cultivate","bengali":"চাষ করা"},
+  {"no":504,"chinese":"样子","pinyin":"yàngzi","english":"A look","bengali":"একটি চেহারা"},
+  {"no":505,"chinese":"邀请","pinyin":"yāoqǐng","english":"Invitation","bengali":"আমন্ত্রণ"},
+  {"no":506,"chinese":"要是","pinyin":"yàoshi","english":"If","bengali":"যদি"},
+  {"no":507,"chinese":"钥匙","pinyin":"yàoshi","english":"Key","bengali":"চাবি"},
+  {"no":508,"chinese":"也许","pinyin":"yěxǔ","english":"perhaps","bengali":"সম্ভবত"},
+  {"no":509,"chinese":"页","pinyin":"yè","english":"page","bengali":"পৃষ্ঠা"},
+  {"no":510,"chinese":"叶子","pinyin":"yèzi","english":"Leaf","bengali":"পাতা"},
+  {"no":511,"chinese":"一切","pinyin":"yíqiè","english":"everything","bengali":"সবকিছু"},
+  {"no":512,"chinese":"以","pinyin":"yǐ","english":"with","bengali":"সাথে"},
+  {"no":513,"chinese":"以为","pinyin":"yǐwéi","english":"Think","bengali":"মনে করা"},
+  {"no":514,"chinese":"意见","pinyin":"yìjiàn","english":"Opinion","bengali":"মতামত"},
+  {"no":515,"chinese":"艺术","pinyin":"yìshù","english":"Art","bengali":"শিল্প"},
+  {"no":516,"chinese":"因此","pinyin":"yīncǐ","english":"therefore","bengali":"অতএব"},
+  {"no":517,"chinese":"引起","pinyin":"yǐnqǐ","english":"cause","bengali":"কারণ"},
+  {"no":518,"chinese":"印象","pinyin":"yìnxiàng","english":"impression","bengali":"ছাপ"},
+  {"no":519,"chinese":"应聘","pinyin":"yìngpìn","english":"Apply for","bengali":"আবেদন করা"},
+  {"no":520,"chinese":"赢","pinyin":"yíng","english":"win","bengali":"জিতা"},
+  {"no":521,"chinese":"勇敢","pinyin":"yǒnggǎn","english":"Brave","bengali":"সাহসী"},
+  {"no":522,"chinese":"永远","pinyin":"yǒngyuǎn","english":"forever","bengali":"চিরকাল"},
+  {"no":523,"chinese":"优点","pinyin":"yōudiǎn","english":"Advantage","bengali":"সুবিধা"},
+  {"no":524,"chinese":"优秀","pinyin":"yōuxiù","english":"excellent","bengali":"চমৎকার"},
+  {"no":525,"chinese":"幽默","pinyin":"yōumò","english":"Humor","bengali":"হাস্যরস"},
+  {"no":526,"chinese":"由","pinyin":"yóu","english":"from","bengali":"থেকে"},
+  {"no":527,"chinese":"由于","pinyin":"yóuyú","english":"Because","bengali":"কারণ"},
+  {"no":528,"chinese":"邮局","pinyin":"yóujú","english":"Post Office","bengali":"ডাকঘর"},
+  {"no":529,"chinese":"尤其","pinyin":"yóuqí","english":"especially","bengali":"বিশেষ করে"},
+  {"no":530,"chinese":"有趣","pinyin":"yǒuqù","english":"interesting","bengali":"আকর্ষণীয়"},
+  {"no":531,"chinese":"友好","pinyin":"yǒuhǎo","english":"friendly","bengali":"বন্ধুত্বপূর্ণ"},
+  {"no":532,"chinese":"友谊","pinyin":"yǒuyì","english":"friendship","bengali":"বন্ধুত্ব"},
+  {"no":533,"chinese":"愉快","pinyin":"yúkuài","english":"Cheerful","bengali":"প্রফুল্ল"},
+  {"no":534,"chinese":"于是","pinyin":"yúshì","english":"Therefore","bengali":"অতএব"},
+  {"no":535,"chinese":"与","pinyin":"yǔ","english":"and","bengali":"এবং"},
+  {"no":536,"chinese":"语法","pinyin":"yǔfǎ","english":"grammar","bengali":"ব্যাকরণ"},
+  {"no":537,"chinese":"语言","pinyin":"yǔyán","english":"language","bengali":"ভাষা"},
+  {"no":538,"chinese":"羽毛球","pinyin":"yǔmáoqiú","english":"Badminton","bengali":"ব্যাডমিন্টন"},
+  {"no":539,"chinese":"预习","pinyin":"yùxí","english":"Preview","bengali":"পূর্বদর্শন"},
+  {"no":540,"chinese":"原来","pinyin":"yuánlái","english":"Original","bengali":"মূল"},
+  {"no":541,"chinese":"原谅","pinyin":"yuánliàng","english":"Forgive","bengali":"ক্ষমা করা"},
+  {"no":542,"chinese":"原因","pinyin":"yuányīn","english":"Reason","bengali":"কারণ"},
+  {"no":543,"chinese":"约会","pinyin":"yuēhuì","english":"Date","bengali":"তারিখ"},
+  {"no":544,"chinese":"阅读","pinyin":"yuèdú","english":"Read","bengali":"পড়া"},
+  {"no":545,"chinese":"云","pinyin":"yún","english":"cloud","bengali":"মেঘ"},
+  {"no":546,"chinese":"允许","pinyin":"yǔnxǔ","english":"allow","bengali":"অনুমতি দেওয়া"},
+  {"no":547,"chinese":"杂志","pinyin":"zázhì","english":"Magazine","bengali":"ম্যাগাজিন"},
+  {"no":548,"chinese":"咱们","pinyin":"zánmen","english":"We","bengali":"আমরা"},
+  {"no":549,"chinese":"暂时","pinyin":"zànshí","english":"temporary","bengali":"অস্থায়ী"},
+  {"no":550,"chinese":"脏","pinyin":"zāng","english":"dirty","bengali":"নোংরা"},
+  {"no":551,"chinese":"责任","pinyin":"zérèn","english":"responsibility","bengali":"দায়িত্ব"},
+  {"no":552,"chinese":"增加","pinyin":"zēngjiā","english":"increase","bengali":"বাড়ানো"},
+  {"no":553,"chinese":"占线","pinyin":"zhànxiàn","english":"(line) Busy","bengali":"লাইন ব্যস্ত"},
+  {"no":554,"chinese":"招聘","pinyin":"zhāopìn","english":"recruit","bengali":"নিয়োগ করা"},
+  {"no":555,"chinese":"照","pinyin":"zhào","english":"reflect","bengali":"প্রতিফলিত করা"},
+  {"no":556,"chinese":"真正","pinyin":"zhēnzhèng","english":"real","bengali":"প্রকৃত"},
+  {"no":557,"chinese":"整理","pinyin":"zhěnglǐ","english":"Arrangement","bengali":"ব্যবস্থা"},
+  {"no":558,"chinese":"正常","pinyin":"zhèngcháng","english":"normal","bengali":"স্বাভাবিক"},
+  {"no":559,"chinese":"正好","pinyin":"zhènghǎo","english":"Just right","bengali":"ঠিক ঠাক"},
+  {"no":560,"chinese":"正确","pinyin":"zhèngquè","english":"Correct","bengali":"সঠিক"},
+  {"no":561,"chinese":"正式","pinyin":"zhèngshì","english":"formal","bengali":"আনুষ্ঠানিক"},
+  {"no":562,"chinese":"证明","pinyin":"zhèngmíng","english":"Prove","bengali":"প্রমাণ করা"},
+  {"no":563,"chinese":"之","pinyin":"zhī","english":"of","bengali":"এর"},
+  {"no":564,"chinese":"支持","pinyin":"zhīchí","english":"Support","bengali":"সমর্থন"},
+  {"no":565,"chinese":"知识","pinyin":"zhīshi","english":"knowledge","bengali":"জ্ঞান"},
+  {"no":566,"chinese":"值得","pinyin":"zhídé","english":"Worth","bengali":"মূল্যবান"},
+  {"no":567,"chinese":"直接","pinyin":"zhíjiē","english":"direct","bengali":"সরাসরি"},
+  {"no":568,"chinese":"植物","pinyin":"zhíwù","english":"Botany, plant","bengali":"উদ্ভিদবিদ্যা, উদ্ভিদ"},
+  {"no":569,"chinese":"职业","pinyin":"zhíyè","english":"Occupation","bengali":"পেশা"},
+  {"no":570,"chinese":"指","pinyin":"zhǐ","english":"finger, to point","bengali":"আঙুল, নির্দেশ করা"},
+  {"no":571,"chinese":"只好","pinyin":"zhǐhǎo","english":"have to","bengali":"করতে হবে"},
+  {"no":572,"chinese":"只要","pinyin":"zhǐyào","english":"as long as","bengali":"যতক্ষণ"},
+  {"no":573,"chinese":"质量","pinyin":"zhìliàng","english":"quality","bengali":"গুণমান"},
+  {"no":574,"chinese":"至少","pinyin":"zhìshǎo","english":"at least","bengali":"অন্তত"},
+  {"no":575,"chinese":"重","pinyin":"zhòng","english":"heavy","bengali":"ভারী"},
+  {"no":576,"chinese":"重点","pinyin":"zhòngdiǎn","english":"A key","bengali":"একটি কী"},
+  {"no":577,"chinese":"重视","pinyin":"zhòngshì","english":"importance, attach importance to","bengali":"গুরুত্ব, গুরুত্ব সংযুক্ত করা"},
+  {"no":578,"chinese":"周围","pinyin":"zhōuwéi","english":"around","bengali":"চারপাশে"},
+  {"no":579,"chinese":"主意","pinyin":"zhǔyi","english":"idea","bengali":"ধারণা"},
+  {"no":580,"chinese":"祝贺","pinyin":"zhùhè","english":"Congratulate","bengali":"অভিনন্দন"},
+  {"no":581,"chinese":"著名","pinyin":"zhùmíng","english":"famous","bengali":"বিখ্যাত"},
+  {"no":582,"chinese":"专门","pinyin":"zhuānmén","english":"specialized","bengali":"বিশেষায়িত"},
+  {"no":583,"chinese":"专业","pinyin":"zhuānyè","english":"major","bengali":"প্রধান"},
+  {"no":584,"chinese":"转","pinyin":"zhuàn","english":"turn","bengali":"ঘুরানো"},
+  {"no":585,"chinese":"赚","pinyin":"zhuàn","english":"earn","bengali":"উপার্জন করা"},
+  {"no":586,"chinese":"准确","pinyin":"zhǔnquè","english":"accuracy","bengali":"নির্ভুলতা"},
+  {"no":587,"chinese":"准时","pinyin":"zhǔnshí","english":"on time","bengali":"সময়মতো"},
+  {"no":588,"chinese":"仔细","pinyin":"zǐxì","english":"careful","bengali":"সতর্ক"},
+  {"no":589,"chinese":"自然","pinyin":"zìrán","english":"natural","bengali":"প্রাকৃতিক"},
+  {"no":590,"chinese":"自信","pinyin":"zìxìn","english":"self-confidence","bengali":"আত্মবিশ্বাস"},
+  {"no":591,"chinese":"总结","pinyin":"zǒngjié","english":"summary","bengali":"সারাংশ"},
+  {"no":592,"chinese":"租","pinyin":"zū","english":"rent","bengali":"ভাড়া"},
+  {"no":593,"chinese":"最好","pinyin":"zuìhǎo","english":"Best","bengali":"সেরা"},
+  {"no":594,"chinese":"尊重","pinyin":"zūnzhòng","english":"respect","bengali":"সম্মান"},
+  {"no":595,"chinese":"左右","pinyin":"zuǒyòu","english":"About","bengali":"প্রায়"},
+  {"no":596,"chinese":"座","pinyin":"zuò","english":"Seat","bengali":"আসন"},
+  {"no":597,"chinese":"作家","pinyin":"zuòjiā","english":"writer","bengali":"লেখক"},
+  {"no":598,"chinese":"座位","pinyin":"zuòwèi","english":"seat","bengali":"আসন"},
+  {"no":599,"chinese":"作用","pinyin":"zuòyòng","english":"Effect","bengali":"প্রভাব"},
+  {"no":600,"chinese":"作者","pinyin":"zuòzhě","english":"author","bengali":"লেখক"}
+],
+
+        // State
+        searchQuery: '',
+        darkMode: false,
+        quizMode: false,
+        currentQuestion: null,
+        currentOptions: [],
+        selectedOption: null,
+        answered: false,
+        isCorrect: false,
+
+        // Computed
+        get filteredWords() {
+          return this.words.filter(w => 
+            w.chinese.includes(this.searchQuery) || 
+            w.pinyin.toLowerCase().includes(this.searchQuery.toLowerCase())
+          );
+        },
+
+        // Methods
+        init() {
+          this.darkMode = localStorage.getItem('darkMode') === 'true';
+          document.documentElement.classList.toggle('dark', this.darkMode);
+        },
+
+        toggleDarkMode() {
+          this.darkMode = !this.darkMode;
+          localStorage.setItem('darkMode', String(this.darkMode));
+          document.documentElement.classList.toggle('dark', this.darkMode);
+        },
+
+        speak(text) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-CN';
+          window.speechSynthesis.speak(utterance);
+        },
+
+        startQuiz() {
+          this.quizMode = true;
+          this.nextQuestion();
+        },
+
+        nextQuestion() {
+          const randomWord = this.words[Math.floor(Math.random() * this.words.length)];
+          const options = [randomWord.english];
+          
+          while (options.length < 4) {
+            const randomOption = this.words[Math.floor(Math.random() * this.words.length)].english;
+            if (!options.includes(randomOption)) {
+              options.push(randomOption);
+            }
+          }
+          
+          this.currentQuestion = randomWord;
+          this.currentOptions = this.shuffleArray(options);
+          this.selectedOption = null;
+          this.answered = false;
+          this.isCorrect = false;
+        },
+
+        checkAnswer(option) {
+          if (this.answered) return;
+          this.selectedOption = option;
+          this.answered = true;
+          this.isCorrect = option === this.currentQuestion.english;
+        },
+
+        shuffleArray(array) {
+          return [...array].sort(() => Math.random() - 0.5);
+        }
+      }));
+    });
+  </script>
+</body>
+</html>
