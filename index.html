@@ -182,12 +182,28 @@
               >
                 <!-- Front -->
                 <div class="absolute inset-0 card-front bg-white/95 dark:bg-gray-800/95 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-md hover:shadow-lg hover:-translate-y-1 flex flex-col items-center justify-center p-4 transition duration-300">
+                  <button
+                    @click.stop="toggleLove(word.no)"
+                    class="absolute top-2 right-2 w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 bg-white/90 dark:bg-gray-700/90 flex items-center justify-center text-sm"
+                    :class="isLoved(word.no) ? 'text-rose-500' : 'text-gray-400 dark:text-gray-300'"
+                    :title="isLoved(word.no) ? 'Unlove' : 'Love'"
+                  >
+                    <span x-text="isLoved(word.no) ? '❤️' : '🤍'"></span>
+                  </button>
                   <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
                   <p x-show="showPinyin" class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
                 </div>
 
                 <!-- Back -->
                 <div class="absolute inset-0 card-back bg-indigo-100 dark:bg-gray-700 rounded-2xl border border-indigo-100 dark:border-gray-600 shadow-md flex flex-col items-center justify-center p-4 text-center">
+                  <button
+                    @click.stop="toggleLove(word.no)"
+                    class="absolute top-2 right-2 w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 bg-white/90 dark:bg-gray-700/90 flex items-center justify-center text-sm"
+                    :class="isLoved(word.no) ? 'text-rose-500' : 'text-gray-400 dark:text-gray-300'"
+                    :title="isLoved(word.no) ? 'Unlove' : 'Love'"
+                  >
+                    <span x-text="isLoved(word.no) ? '❤️' : '🤍'"></span>
+                  </button>
                   <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
                   <p class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
                   <p class="font-semibold text-lg" x-text="'English: ' + word.english"></p>
@@ -859,6 +875,7 @@
         darkMode: false,
         showPinyin: true,
         flippedCardNo: null,
+        lovedWordNos: [],
         quizMode: false,
         lastQuestionNo: null,
         currentQuestion: null,
@@ -888,8 +905,10 @@
         init() {
           const stored = localStorage.getItem('darkMode');
           const storedPinyin = localStorage.getItem('showPinyin');
+          const storedLovedWords = localStorage.getItem('lovedWordNos');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
+          this.lovedWordNos = storedLovedWords ? JSON.parse(storedLovedWords) : [];
           document.documentElement.classList.toggle('dark', this.darkMode);
         },
 
@@ -918,6 +937,19 @@
 
         isCardFlipped(cardNo) {
           return this.flippedCardNo === cardNo;
+        },
+
+        toggleLove(wordNo) {
+          if (this.lovedWordNos.includes(wordNo)) {
+            this.lovedWordNos = this.lovedWordNos.filter(no => no !== wordNo);
+          } else {
+            this.lovedWordNos = [...this.lovedWordNos, wordNo];
+          }
+          localStorage.setItem('lovedWordNos', JSON.stringify(this.lovedWordNos));
+        },
+
+        isLoved(wordNo) {
+          return this.lovedWordNos.includes(wordNo);
         },
 
         speak(text) {
