@@ -156,6 +156,15 @@
             <button @click="quickSearch('xué')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">xué</button>
             <button @click="quickSearch('happy')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">happy</button>
             <button @click="quickSearch('বন্ধু')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">বন্ধু</button>
+            <button
+              @click="toggleFavoritesOnly()"
+              class="px-3 py-1.5 rounded-full text-sm border transition duration-300 hover:-translate-y-0.5"
+              :class="showFavoritesOnly
+                ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-700'
+                : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-rose-300 dark:hover:border-rose-500'"
+            >
+              <span x-text="showFavoritesOnly ? '❤️ Favorites Only: ON' : '🤍 Favorites Only: OFF'"></span>
+            </button>
           </div>
         </section>
 
@@ -868,6 +877,7 @@
         showPinyin: true,
         flippedCardNo: null,
         lovedWordNos: [],
+        showFavoritesOnly: false,
         quizMode: false,
         lastQuestionNo: null,
         currentQuestion: null,
@@ -883,14 +893,22 @@
 
         get filteredWords() {
           const query = this.searchQuery.trim().toLowerCase();
-          if (!query) return this.words;
+          let results = this.words;
 
-          return this.words.filter(w => 
-            w.chinese.includes(query) || 
-            w.pinyin.toLowerCase().includes(query) ||
-            w.english.toLowerCase().includes(query) ||
-            w.bengali.includes(query)
-          );
+          if (query) {
+            results = results.filter(w => 
+              w.chinese.includes(query) || 
+              w.pinyin.toLowerCase().includes(query) ||
+              w.english.toLowerCase().includes(query) ||
+              w.bengali.includes(query)
+            );
+          }
+
+          if (this.showFavoritesOnly) {
+            results = results.filter(w => this.lovedWordNos.includes(w.no));
+          }
+
+          return results;
         },
 
         // Methods
@@ -898,9 +916,11 @@
           const stored = localStorage.getItem('darkMode');
           const storedPinyin = localStorage.getItem('showPinyin');
           const storedLovedWords = localStorage.getItem('lovedWordNos');
+          const storedFavoritesOnly = localStorage.getItem('showFavoritesOnly');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
           this.lovedWordNos = storedLovedWords ? JSON.parse(storedLovedWords) : [];
+          this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
           document.documentElement.classList.toggle('dark', this.darkMode);
         },
 
@@ -913,6 +933,11 @@
         togglePinyin() {
           this.showPinyin = !this.showPinyin;
           localStorage.setItem('showPinyin', String(this.showPinyin));
+        },
+
+        toggleFavoritesOnly() {
+          this.showFavoritesOnly = !this.showFavoritesOnly;
+          localStorage.setItem('showFavoritesOnly', String(this.showFavoritesOnly));
         },
 
         clearSearch() {
