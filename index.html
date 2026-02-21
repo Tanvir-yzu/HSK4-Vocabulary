@@ -88,6 +88,15 @@
 
       <div class="flex items-center gap-3 w-full md:w-auto justify-end">
 
+        <!-- Pinyin Toggle -->
+        <button 
+          @click="togglePinyin()"
+          class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5 active:scale-95"
+          :class="{ 'bg-gray-200 dark:bg-gray-700': showPinyin }"
+        >
+          <span x-text="showPinyin ? 'Pinyin: ON' : 'Pinyin: OFF'"></span>
+        </button>
+
         <!-- Theme Toggle -->
         <button 
           @click="toggleDarkMode()"
@@ -170,7 +179,7 @@
                 <!-- Front -->
                 <div class="absolute inset-0 card-front bg-white/95 dark:bg-gray-800/95 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-md hover:shadow-lg hover:-translate-y-1 flex flex-col items-center justify-center p-4 transition duration-300">
                   <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
-                  <p class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
+                  <p x-show="showPinyin" class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
                   <button 
                     @click.stop="speak(word.chinese)"
                     class="mt-4 p-2.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-xl hover:bg-indigo-200 dark:hover:bg-indigo-800 transition duration-300 hover:scale-105 active:scale-95"
@@ -848,6 +857,7 @@
         // State
         searchQuery: '',
         darkMode: false,
+        showPinyin: true,
         quizMode: false,
         lastQuestionNo: null,
         currentQuestion: null,
@@ -876,7 +886,9 @@
         // Methods
         init() {
           const stored = localStorage.getItem('darkMode');
+          const storedPinyin = localStorage.getItem('showPinyin');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
           document.documentElement.classList.toggle('dark', this.darkMode);
         },
 
@@ -884,6 +896,11 @@
           this.darkMode = !this.darkMode;
           localStorage.setItem('darkMode', String(this.darkMode));
           document.documentElement.classList.toggle('dark', this.darkMode);
+        },
+
+        togglePinyin() {
+          this.showPinyin = !this.showPinyin;
+          localStorage.setItem('showPinyin', String(this.showPinyin));
         },
 
         clearSearch() {
