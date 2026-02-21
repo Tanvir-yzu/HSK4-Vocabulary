@@ -7,7 +7,8 @@
   <script>
     window.tailwind = window.tailwind || {};
     window.tailwind.config = { darkMode: 'class' };
-    if (localStorage.getItem('darkMode') === 'true') {
+    const stored = localStorage.getItem('darkMode');
+    if (stored === 'true' || (stored === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
     }
   </script>
@@ -874,7 +875,8 @@
 
         // Methods
         init() {
-          this.darkMode = localStorage.getItem('darkMode') === 'true';
+          const stored = localStorage.getItem('darkMode');
+          this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           document.documentElement.classList.toggle('dark', this.darkMode);
         },
 
