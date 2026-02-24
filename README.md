@@ -37,7 +37,7 @@ No dependencies to install. No build step needed.
 |---|---|
 | Search | Type in the search box — supports Chinese, Pinyin, English, or Bengali |
 | Quick search | Click one of the quick-search buttons below the search box |
-| Flip a card | Hover over any vocabulary card |
+| Flip a card | Click or tap any vocabulary card |
 | Hear pronunciation | Click 🔊 on the front of a card |
 | Start a quiz | Click **Start Quiz** in the header |
 | Dark / Light mode | Click the 🌙 / ☀️ button in the header |

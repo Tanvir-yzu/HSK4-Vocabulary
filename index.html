@@ -212,6 +212,14 @@
                   >
                     <span x-text="isLoved(word.no) ? '❤️' : '🤍'"></span>
                   </button>
+                  <button
+                    @click.stop="speak(word.chinese)"
+                    class="absolute top-2 left-2 w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 bg-white/90 dark:bg-gray-700/90 flex items-center justify-center text-sm text-gray-600 dark:text-gray-200"
+                    title="Hear pronunciation"
+                    aria-label="Hear pronunciation"
+                  >
+                    🔊
+                  </button>
                   <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
                   <p x-show="showPinyin" class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
                 </div>
@@ -941,7 +949,17 @@
           const storedPinyinLetter = localStorage.getItem('selectedPinyinLetter');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
-          this.lovedWordNos = storedLovedWords ? JSON.parse(storedLovedWords) : [];
+          if (storedLovedWords) {
+            try {
+              const parsedLovedWords = JSON.parse(storedLovedWords);
+              this.lovedWordNos = Array.isArray(parsedLovedWords) ? parsedLovedWords : [];
+            } catch {
+              this.lovedWordNos = [];
+              localStorage.removeItem('lovedWordNos');
+            }
+          } else {
+            this.lovedWordNos = [];
+          }
           this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
           this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
           document.documentElement.classList.toggle('dark', this.darkMode);
