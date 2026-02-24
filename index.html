@@ -1060,6 +1060,7 @@
         toastVisible: false,
         toastMessage: '',
         toastTimeoutId: null,
+        quickSearchIntervalId: null,
         boundHandleKeydown: null,
 
         // Computed
@@ -1151,6 +1152,9 @@
           this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
           this.bestStreak = storedBestStreak !== null ? Number(storedBestStreak) || 0 : 0;
           this.generateQuickSearchOptions();
+          this.quickSearchIntervalId = setInterval(() => {
+            this.generateQuickSearchOptions();
+          }, 60000);
           document.documentElement.classList.toggle('dark', this.darkMode);
           this.boundHandleKeydown = (event) => this.handleKeydown(event);
           window.addEventListener('keydown', this.boundHandleKeydown);
@@ -1163,6 +1167,10 @@
           this.stopQuizTimer();
           if (this.toastTimeoutId) {
             clearTimeout(this.toastTimeoutId);
+          }
+          if (this.quickSearchIntervalId) {
+            clearInterval(this.quickSearchIntervalId);
+            this.quickSearchIntervalId = null;
           }
         },
 
