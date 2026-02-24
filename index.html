@@ -1074,15 +1074,29 @@
 
         get filteredWords() {
           const query = this.searchQuery.trim().toLowerCase();
+          const latinQuery = this.normalizePinyin(query).replace(/[^a-z]/g, '');
           let results = this.words;
 
           if (query) {
-            results = results.filter(w => 
-              w.chinese.includes(query) || 
-              w.pinyin.toLowerCase().includes(query) ||
-              w.english.toLowerCase().includes(query) ||
-              w.bengali.includes(query)
-            );
+            results = results.filter(w => {
+              const chinese = String(w.chinese || '');
+              const pinyin = String(w.pinyin || '');
+              const english = String(w.english || '').toLowerCase();
+              const bengali = String(w.bengali || '');
+              const normalizedPinyin = this.normalizePinyin(pinyin);
+              const normalizedPinyinCompact = normalizedPinyin.replace(/[^a-z]/g, '');
+              const pinyinMatch = latinQuery
+                ? normalizedPinyin.includes(latinQuery) || normalizedPinyinCompact.includes(latinQuery)
+                : false;
+
+              return (
+                chinese.includes(query) ||
+                english.includes(query) ||
+                bengali.includes(query) ||
+                pinyin.toLowerCase().includes(query) ||
+                pinyinMatch
+              );
+            });
           }
 
           if (this.showFavoritesOnly) {
