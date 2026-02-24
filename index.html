@@ -289,6 +289,7 @@
                   @click="checkAnswer(option)"
                   class="w-full p-3 text-left rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5"
                   :class="{ 
+                    'bg-green-100 border-green-500': answered && option === currentQuestion.english,
                     'bg-green-100 border-green-500': selectedOption === option && option === currentQuestion.english,
                     'bg-red-100 border-red-500': selectedOption === option && option !== currentQuestion.english,
                     'opacity-50 cursor-not-allowed': answered
@@ -301,10 +302,19 @@
             <div x-show="answered" class="mt-4">
               <p x-text="isCorrect ? '✅ Correct!' : '❌ Wrong!'" 
                  :class="isCorrect ? 'text-green-600' : 'text-red-600'"></p>
+              <p x-show="!isCorrect && currentQuestion" class="mt-1 text-sm text-indigo-700 dark:text-indigo-300">
+                Correct answer: <span class="font-semibold" x-text="currentQuestion.english"></span>
+                <span class="mx-1">•</span>
+                Pinyin: <span class="font-semibold" x-text="currentQuestion.pinyin"></span>
+              </p>
               <button @click="nextQuestion" class="mt-4 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-400/40 transition duration-300 hover:-translate-y-0.5 active:scale-95">
                 Next Question
               </button>
             </div>
+          </div>
+
+          <div x-show="quizError" class="mt-4 rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+            <p x-text="quizError"></p>
           </div>
         </div>
       </div>
@@ -951,6 +961,7 @@
         selectedOption: null,
         answered: false,
         isCorrect: false,
+        quizError: '',
         quizTotal: 0,
         quizCorrect: 0,
         quizStreak: 0,
@@ -1196,7 +1207,14 @@
         },
 
         startQuiz() {
+          if (!this.words.length) {
+            this.quizMode = false;
+            this.showToast('No words available for quiz');
+            return;
+          }
+
           this.quizMode = true;
+          this.quizError = '';
           this.quizTotal = 0;
           this.quizCorrect = 0;
           this.quizStreak = 0;
@@ -1204,32 +1222,48 @@
         },
 
         nextQuestion() {
-          let randomWord = this.words[Math.floor(Math.random() * this.words.length)];
-          if (this.words.length > 1) {
-            while (randomWord.no === this.lastQuestionNo) {
-              randomWord = this.words[Math.floor(Math.random() * this.words.length)];
-            }
+          const pool = this.words;
+          if (!pool.length) {
+            this.quizError = 'No words available for quiz.';
+            this.currentQuestion = null;
+            this.currentOptions = [];
+            this.answered = true;
+            return;
           }
 
-          const options = [randomWord.english];
-          
-          while (options.length < 4) {
-            const randomOption = this.words[Math.floor(Math.random() * this.words.length)].english;
-            if (!options.includes(randomOption)) {
-              options.push(randomOption);
-            }
+          const candidates = pool.length > 1
+            ? pool.filter(word => word.no !== this.lastQuestionNo)
+            : [...pool];
+
+          const source = candidates.length ? candidates : pool;
+          const randomWord = source[Math.floor(Math.random() * source.length)];
+
+          const uniqueEnglishPool = [...new Set(pool.map(word => word.english).filter(Boolean))];
+          if (!randomWord || uniqueEnglishPool.length < 2) {
+            this.quizError = 'Not enough unique answers to build a quiz question.';
+            this.currentQuestion = null;
+            this.currentOptions = [];
+            this.answered = true;
+            return;
           }
+
+          const wrongOptions = this.shuffleArray(
+            uniqueEnglishPool.filter(english => english !== randomWord.english)
+          ).slice(0, 3);
+
+          const options = this.shuffleArray([randomWord.english, ...wrongOptions]);
           
+          this.quizError = '';
           this.lastQuestionNo = randomWord.no;
           this.currentQuestion = randomWord;
-          this.currentOptions = this.shuffleArray(options);
+          this.currentOptions = options;
           this.selectedOption = null;
           this.answered = false;
           this.isCorrect = false;
         },
 
         checkAnswer(option) {
-          if (this.answered) return;
+          if (this.answered || !this.currentQuestion) return;
           this.selectedOption = option;
           this.answered = true;
           this.isCorrect = option === this.currentQuestion.english;
