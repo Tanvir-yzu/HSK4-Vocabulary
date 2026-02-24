@@ -10,9 +10,14 @@ Open `index.html` in any modern web browser — no installation or build step re
 
 - **600+ HSK 4 Words** — Complete vocabulary list with Chinese characters, Pinyin, English, and Bengali translations
 - **Smart Search** — Filter words by Chinese character, Pinyin, English meaning, or Bengali translation
-- **Flip Cards** — Hover over a card to reveal the English and Bengali translation
+- **Flip Cards** — Click/tap a card to reveal the English and Bengali translation
 - **Text-to-Speech** — Click the 🔊 button on any card to hear the Chinese pronunciation
+- **Random Word Jump** — Jump to a random word from the current filtered list
+- **Copy Vocabulary** — Copy Chinese, Pinyin, English, and Bengali from any card with one click
+- **Keyboard Shortcuts** — Use `/`, `D`, `P`, `Q`, `R` for faster navigation and actions
+- **Learning Progress** — Track loved-word progress with a live progress bar
 - **Quiz Mode** — Multiple-choice quiz to test your knowledge
+- **Quiz Session Stats** — See score, current streak, and best streak in quiz mode
 - **Dark Mode** — Toggle between light and dark themes (respects system preference)
 - **Responsive Design** — Works on desktop, tablet, and mobile
 
@@ -37,10 +42,13 @@ No dependencies to install. No build step needed.
 |---|---|
 | Search | Type in the search box — supports Chinese, Pinyin, English, or Bengali |
 | Quick search | Click one of the quick-search buttons below the search box |
+| Random word | Click **🎲 Random Word** to jump and auto-focus a random visible word |
 | Flip a card | Click or tap any vocabulary card |
+| Copy a word | Click 📋 on the back of a card |
 | Hear pronunciation | Click 🔊 on the front of a card |
 | Start a quiz | Click **Start Quiz** in the header |
 | Dark / Light mode | Click the 🌙 / ☀️ button in the header |
+| Keyboard shortcuts | `/` focus search, `D` dark mode, `P` pinyin, `Q` quiz, `R` random word |
 
 ## License
 

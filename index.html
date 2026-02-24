@@ -138,6 +138,7 @@
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 animate-float">🔎</span>
             <input
               type="text"
+              x-ref="searchInput"
               x-model="searchQuery"
               placeholder="Try: 爱情, àiqíng, love, প্রেম"
               class="w-full pl-12 pr-28 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-700/90 focus:ring-2 focus:ring-indigo-500 outline-none transition duration-300 shadow-sm focus:shadow-indigo-300/40"
@@ -156,6 +157,7 @@
             <button @click="quickSearch('xué')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">xué</button>
             <button @click="quickSearch('happy')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">happy</button>
             <button @click="quickSearch('বন্ধু')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">বন্ধু</button>
+            <button @click="openRandomWord()" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">🎲 Random Word</button>
             <button
               @click="toggleFavoritesOnly()"
               class="px-3 py-1.5 rounded-full text-sm border transition duration-300 hover:-translate-y-0.5"
@@ -179,12 +181,24 @@
               </select>
             </div>
           </div>
+
+          <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            Shortcuts: <span class="font-medium">/</span> search • <span class="font-medium">D</span> dark mode • <span class="font-medium">P</span> pinyin • <span class="font-medium">Q</span> quiz • <span class="font-medium">R</span> random
+          </div>
         </section>
 
         <!-- Stats -->
-        <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-gray-800/80 px-4 py-2 text-gray-600 dark:text-gray-300 shadow-sm">
-          <span class="text-indigo-600 dark:text-indigo-400">📘</span>
-          Showing <span class="font-semibold" x-text="filteredWords.length"></span> words
+        <div class="mb-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-gray-800/80 px-4 py-3 text-gray-600 dark:text-gray-300 shadow-sm">
+          <div class="inline-flex items-center gap-2">
+            <span class="text-indigo-600 dark:text-indigo-400">📘</span>
+            Showing <span class="font-semibold" x-text="filteredWords.length"></span> words • Loved <span class="font-semibold" x-text="lovedWordNos.length"></span>
+          </div>
+          <div class="mt-2">
+            <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div class="h-full bg-indigo-500 transition-all duration-500" :style="`width: ${favoritesProgress}%`"></div>
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Learning progress: <span class="font-semibold" x-text="favoritesProgress"></span>% loved</p>
+          </div>
         </div>
 
         <div x-show="filteredWords.length === 0" x-transition.opacity.duration.300ms class="mb-8 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-800/70 p-8 text-center animate-fade-up">
@@ -196,7 +210,7 @@
         <!-- Grid -->
         <div x-show="filteredWords.length > 0" x-transition.opacity.duration.300ms class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <template x-for="(word, index) in filteredWords" :key="word.no">
-            <div class="group perspective-1000 vocab-card" :style="`animation-delay: ${Math.min(index * 25, 350)}ms`">
+            <div class="group perspective-1000 vocab-card" :style="`animation-delay: ${Math.min(index * 25, 350)}ms`" :id="`word-card-${word.no}`">
               <div
                 class="relative w-full h-48 card-flip cursor-pointer"
                 :class="{ 'is-flipped': isCardFlipped(word.no) }"
@@ -226,6 +240,14 @@
 
                 <!-- Back -->
                 <div class="absolute inset-0 card-back bg-indigo-100 dark:bg-gray-700 rounded-2xl border border-indigo-100 dark:border-gray-600 shadow-md flex flex-col items-center justify-center p-4 text-center">
+                  <button
+                    @click.stop="copyWord(word)"
+                    class="absolute top-2 right-2 w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 bg-white/90 dark:bg-gray-700/90 flex items-center justify-center text-sm text-gray-600 dark:text-gray-200"
+                    title="Copy word"
+                    aria-label="Copy word"
+                  >
+                    📋
+                  </button>
                   <h2 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300" x-text="word.chinese"></h2>
                   <p class="text-lg text-gray-500 dark:text-gray-400 mt-2" x-text="word.pinyin"></p>
                   <p class="font-semibold text-lg" x-text="'English: ' + word.english"></p>
@@ -245,6 +267,18 @@
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold tracking-tight">Quiz Mode</h2>
             <button @click="quizMode = false" class="text-red-500 hover:underline font-medium">Exit</button>
+          </div>
+
+          <div class="mb-4 grid grid-cols-3 gap-2 text-xs">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
+              Score: <span class="font-semibold" x-text="`${quizCorrect}/${quizTotal}`"></span>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
+              Streak: <span class="font-semibold" x-text="quizStreak"></span>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
+              Best: <span class="font-semibold" x-text="bestStreak"></span>
+            </div>
           </div>
 
           <div x-show="currentQuestion">
@@ -284,6 +318,14 @@
       <p class="mt-2 text-sm font-medium text-indigo-600 dark:text-indigo-300">Made by Tanvir</p>
     </div>
   </footer>
+
+  <div
+    x-show="toastVisible"
+    x-transition.opacity.duration.200ms
+    class="fixed bottom-5 right-5 z-[70] rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white/95 dark:bg-gray-800/95 px-4 py-2 text-sm shadow-lg"
+  >
+    <p x-text="toastMessage"></p>
+  </div>
 
   <!-- Alpine.js Logic -->
   <script>
@@ -909,10 +951,23 @@
         selectedOption: null,
         answered: false,
         isCorrect: false,
+        quizTotal: 0,
+        quizCorrect: 0,
+        quizStreak: 0,
+        bestStreak: 0,
+        toastVisible: false,
+        toastMessage: '',
+        toastTimeoutId: null,
+        boundHandleKeydown: null,
 
         // Computed
         get totalWords() {
           return this.words.length;
+        },
+
+        get favoritesProgress() {
+          if (!this.words.length) return 0;
+          return Math.round((this.lovedWordNos.length / this.words.length) * 100);
         },
 
         get filteredWords() {
@@ -947,6 +1002,7 @@
           const storedLovedWords = localStorage.getItem('lovedWordNos');
           const storedFavoritesOnly = localStorage.getItem('showFavoritesOnly');
           const storedPinyinLetter = localStorage.getItem('selectedPinyinLetter');
+          const storedBestStreak = localStorage.getItem('bestStreak');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
           if (storedLovedWords) {
@@ -962,7 +1018,19 @@
           }
           this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
           this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
+          this.bestStreak = storedBestStreak !== null ? Number(storedBestStreak) || 0 : 0;
           document.documentElement.classList.toggle('dark', this.darkMode);
+          this.boundHandleKeydown = (event) => this.handleKeydown(event);
+          window.addEventListener('keydown', this.boundHandleKeydown);
+        },
+
+        destroy() {
+          if (this.boundHandleKeydown) {
+            window.removeEventListener('keydown', this.boundHandleKeydown);
+          }
+          if (this.toastTimeoutId) {
+            clearTimeout(this.toastTimeoutId);
+          }
         },
 
         toggleDarkMode() {
@@ -991,6 +1059,35 @@
 
         quickSearch(term) {
           this.searchQuery = term;
+          this.focusSearch();
+        },
+
+        focusSearch() {
+          this.$nextTick(() => {
+            if (this.$refs.searchInput) {
+              this.$refs.searchInput.focus();
+              this.$refs.searchInput.select();
+            }
+          });
+        },
+
+        openRandomWord() {
+          if (!this.filteredWords.length) {
+            this.showToast('No words to choose from right now');
+            return;
+          }
+
+          const randomWord = this.filteredWords[Math.floor(Math.random() * this.filteredWords.length)];
+          this.flippedCardNo = randomWord.no;
+
+          this.$nextTick(() => {
+            const target = document.getElementById(`word-card-${randomWord.no}`);
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          });
+
+          this.showToast(`Random word: ${randomWord.chinese}`);
         },
 
         toggleCard(cardNo) {
@@ -1022,15 +1119,87 @@
         },
 
         speak(text) {
-          if (!('speechSynthesis' in window)) return;
+          if (!('speechSynthesis' in window)) {
+            this.showToast('Speech is not supported in this browser');
+            return;
+          }
           window.speechSynthesis.cancel();
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'zh-CN';
           window.speechSynthesis.speak(utterance);
         },
 
+        copyWord(word) {
+          const payload = `${word.chinese} (${word.pinyin})\nEnglish: ${word.english}\nBengali: ${word.bengali}`;
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(payload)
+              .then(() => this.showToast('Word copied'))
+              .catch(() => this.showToast('Copy failed'));
+            return;
+          }
+
+          const textarea = document.createElement('textarea');
+          textarea.value = payload;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+
+          try {
+            document.execCommand('copy');
+            this.showToast('Word copied');
+          } catch {
+            this.showToast('Copy failed');
+          } finally {
+            document.body.removeChild(textarea);
+          }
+        },
+
+        showToast(message) {
+          this.toastMessage = message;
+          this.toastVisible = true;
+          if (this.toastTimeoutId) {
+            clearTimeout(this.toastTimeoutId);
+          }
+          this.toastTimeoutId = setTimeout(() => {
+            this.toastVisible = false;
+          }, 1800);
+        },
+
+        handleKeydown(event) {
+          const targetTag = event.target && event.target.tagName ? event.target.tagName.toLowerCase() : '';
+          const isTypingTarget = targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select';
+
+          if (event.key === '/') {
+            event.preventDefault();
+            this.focusSearch();
+            return;
+          }
+
+          if (isTypingTarget) {
+            return;
+          }
+
+          const key = event.key.toLowerCase();
+
+          if (key === 'd') {
+            this.toggleDarkMode();
+          } else if (key === 'p') {
+            this.togglePinyin();
+          } else if (key === 'q') {
+            this.startQuiz();
+          } else if (key === 'r') {
+            this.openRandomWord();
+          }
+        },
+
         startQuiz() {
           this.quizMode = true;
+          this.quizTotal = 0;
+          this.quizCorrect = 0;
+          this.quizStreak = 0;
           this.nextQuestion();
         },
 
@@ -1064,6 +1233,18 @@
           this.selectedOption = option;
           this.answered = true;
           this.isCorrect = option === this.currentQuestion.english;
+          this.quizTotal += 1;
+
+          if (this.isCorrect) {
+            this.quizCorrect += 1;
+            this.quizStreak += 1;
+            if (this.quizStreak > this.bestStreak) {
+              this.bestStreak = this.quizStreak;
+              localStorage.setItem('bestStreak', String(this.bestStreak));
+            }
+          } else {
+            this.quizStreak = 0;
+          }
         },
 
         shuffleArray(array) {
