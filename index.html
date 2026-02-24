@@ -1091,7 +1091,7 @@
 
           if (this.selectedPinyinLetter) {
             const selected = this.selectedPinyinLetter.toLowerCase();
-            results = results.filter(w => this.normalizePinyin(w.pinyin).startsWith(selected));
+            results = results.filter(w => this.getPinyinInitial(w.pinyin) === selected);
           }
 
           return results;
@@ -1243,10 +1243,15 @@
         },
 
         normalizePinyin(text) {
-          return text
+          return String(text || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .toLowerCase();
+        },
+
+        getPinyinInitial(text) {
+          const lettersOnly = this.normalizePinyin(text).replace(/[^a-z]/g, '');
+          return lettersOnly.charAt(0);
         },
 
         speak(text) {
