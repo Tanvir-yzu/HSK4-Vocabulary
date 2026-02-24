@@ -153,10 +153,9 @@
           </div>
 
           <div class="mt-4 flex flex-wrap gap-2">
-            <button @click="quickSearch('爱')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">爱</button>
-            <button @click="quickSearch('xué')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">xué</button>
-            <button @click="quickSearch('happy')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">happy</button>
-            <button @click="quickSearch('বন্ধু')" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">বন্ধু</button>
+            <template x-for="(option, index) in quickSearchOptions" :key="`${option}-${index}`">
+              <button @click="quickSearch(option)" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5" x-text="option"></button>
+            </template>
             <button @click="openRandomWord()" class="px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 transition duration-300 hover:-translate-y-0.5">🎲 Random Word</button>
             <button
               @click="toggleFavoritesOnly()"
@@ -1033,6 +1032,7 @@
         showPinyin: true,
         flippedCardNo: null,
         lovedWordNos: [],
+        quickSearchOptions: [],
         showFavoritesOnly: false,
         selectedPinyinLetter: '',
         pinyinLetters: Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
@@ -1150,6 +1150,7 @@
           this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
           this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
           this.bestStreak = storedBestStreak !== null ? Number(storedBestStreak) || 0 : 0;
+          this.generateQuickSearchOptions();
           document.documentElement.classList.toggle('dark', this.darkMode);
           this.boundHandleKeydown = (event) => this.handleKeydown(event);
           window.addEventListener('keydown', this.boundHandleKeydown);
@@ -1205,6 +1206,17 @@
         quickSearch(term) {
           this.searchQuery = term;
           this.focusSearch();
+        },
+
+        generateQuickSearchOptions() {
+          const optionPool = [...new Set(this.words.flatMap(word => [
+            word.chinese,
+            word.pinyin,
+            word.english,
+            word.bengali
+          ].map(value => String(value || '').trim())).filter(Boolean))];
+
+          this.quickSearchOptions = this.shuffleArray(optionPool).slice(0, 4);
         },
 
         focusSearch() {
