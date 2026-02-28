@@ -106,13 +106,6 @@
           <span x-text="darkMode ? '☀️' : '🌙'"></span>
         </button>
 
-        <!-- Quiz Toggle -->
-        <button 
-          @click="startQuiz()"
-          class="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition duration-300 hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-400/40 animate-soft-pulse"
-        >
-          Start Quiz
-        </button>
       </div>
       </div>
     </div>
@@ -120,8 +113,7 @@
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 py-8">
-    <template x-if="!quizMode">
-      <div>
+    <div>
         <section class="animate-fade-up mb-8 rounded-3xl border border-white/70 dark:border-gray-700/70 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-sm p-4 md:p-6">
           <div class="flex items-center justify-between gap-4 flex-wrap">
             <div>
@@ -182,7 +174,7 @@
           </div>
 
           <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">
-            Shortcuts: <span class="font-medium">/</span> search • <span class="font-medium">D</span> dark mode • <span class="font-medium">P</span> pinyin • <span class="font-medium">Q</span> quiz • <span class="font-medium">R</span> random
+            Shortcuts: <span class="font-medium">/</span> search • <span class="font-medium">D</span> dark mode • <span class="font-medium">P</span> pinyin • <span class="font-medium">R</span> random
           </div>
         </section>
 
@@ -257,147 +249,6 @@
           </template>
         </div>
       </div>
-    </template>
-
-    <!-- Quiz Mode -->
-    <template x-if="quizMode">
-      <div class="max-w-2xl mx-auto animate-fade-up">
-        <div class="bg-white/90 dark:bg-gray-800/90 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg p-8 backdrop-blur-sm">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold tracking-tight">Quiz Mode</h2>
-            <button @click="exitQuiz()" class="text-red-500 hover:underline font-medium">Exit</button>
-          </div>
-
-          <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
-              Score: <span class="font-semibold" x-text="`${quizCorrect}/${quizTotal}`"></span>
-            </div>
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
-              Question: <span class="font-semibold" x-text="`${Math.min(currentQuestionIndex, quizLength)}/${quizLength}`"></span>
-            </div>
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
-              Streak: <span class="font-semibold" x-text="quizStreak"></span>
-            </div>
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
-              Best: <span class="font-semibold" x-text="bestStreak"></span>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <div class="mb-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>Quiz Progress</span>
-              <span x-text="`${quizProgressPercent}%`"></span>
-            </div>
-            <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-              <div class="h-full bg-indigo-500 transition-all duration-500" :style="`width: ${quizProgressPercent}%`"></div>
-            </div>
-          </div>
-
-          <div x-show="!quizCompleted" class="mb-5">
-            <div class="mb-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>Time Left</span>
-              <span><span class="font-semibold" x-text="timeLeft"></span>s</span>
-            </div>
-            <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-              <div class="h-full bg-emerald-500 transition-all duration-1000" :style="`width: ${timerProgressPercent}%`"></div>
-            </div>
-          </div>
-
-          <div x-show="currentQuestion && !quizCompleted">
-            <p class="text-lg mb-4">
-              <span x-text="currentQuestionType === 'zh-to-en' ? 'What is the English meaning of' : 'Which Chinese word matches' "></span>
-              "<span x-text="currentQuestionType === 'zh-to-en' ? currentQuestion.chinese : currentQuestion.english"></span>"?
-            </p>
-            <div class="space-y-3">
-              <template x-for="(option, index) in currentOptions" :key="index">
-                <button 
-                  @click="checkAnswer(option)"
-                  class="w-full p-3 text-left rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5"
-                  :class="{ 
-                    'bg-green-100 border-green-500': answered && option === currentCorrectAnswer,
-                    'bg-green-100 border-green-500': selectedOption === option && option === currentCorrectAnswer,
-                    'bg-red-100 border-red-500': selectedOption === option && option !== currentCorrectAnswer,
-                    'opacity-50 cursor-not-allowed': answered
-                  }"
-                  :disabled="answered"
-                  x-text="option"
-                ></button>
-              </template>
-            </div>
-            <div x-show="answered" class="mt-4">
-              <p x-text="isCorrect ? '✅ Correct!' : '❌ Wrong!'" 
-                 :class="isCorrect ? 'text-green-600' : 'text-red-600'"></p>
-
-              <p x-show="currentQuestion && currentQuestionType === 'zh-to-en'" class="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                Chinese: <span class="font-semibold" x-text="currentQuestion.chinese"></span>
-                <span class="mx-1">•</span>
-                Pinyin: <span class="font-semibold" x-text="currentQuestion.pinyin"></span>
-              </p>
-
-              <p x-show="currentQuestion && currentQuestionType === 'en-to-zh'" class="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                Correct Chinese: <span class="font-semibold" x-text="currentQuestion.chinese"></span>
-                <span class="mx-1">•</span>
-                Pinyin: <span class="font-semibold" x-text="currentQuestion.pinyin"></span>
-              </p>
-
-              <p x-show="!isCorrect && currentQuestion" class="mt-1 text-sm text-indigo-700 dark:text-indigo-300">
-                Correct answer: <span class="font-semibold" x-text="currentCorrectAnswer"></span>
-              </p>
-
-              <button @click="nextQuestion" class="mt-4 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-400/40 transition duration-300 hover:-translate-y-0.5 active:scale-95">
-                <span x-text="currentQuestionIndex >= quizLength ? 'Finish Quiz' : 'Next Question'"></span>
-              </button>
-            </div>
-          </div>
-
-          <div x-show="quizCompleted" class="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-900/20 p-6">
-            <h3 class="text-xl font-bold text-emerald-700 dark:text-emerald-300">Quiz Completed 🎉</h3>
-            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-              Final score: <span class="font-semibold" x-text="`${quizCorrect}/${quizTotal}`"></span>
-              • Accuracy: <span class="font-semibold" x-text="`${quizAccuracy}%`"></span>
-            </p>
-
-            <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div class="rounded-xl border border-emerald-200 dark:border-emerald-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
-                Correct: <span class="font-semibold" x-text="quizCorrect"></span>
-              </div>
-              <div class="rounded-xl border border-rose-200 dark:border-rose-700 bg-white/70 dark:bg-gray-700/70 px-3 py-2">
-                Wrong: <span class="font-semibold" x-text="quizIncorrectAnswers.length"></span>
-              </div>
-            </div>
-
-            <div x-show="quizIncorrectAnswers.length > 0" class="mt-4 rounded-xl border border-rose-200 dark:border-rose-800 bg-white/70 dark:bg-gray-800/70 p-4">
-              <h4 class="text-sm font-semibold text-rose-700 dark:text-rose-300 mb-3">Wrong Answers Review</h4>
-              <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                <template x-for="(item, index) in quizIncorrectAnswers" :key="`${index}-${item.question}`">
-                  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 p-3 text-xs">
-                    <p class="font-medium text-gray-800 dark:text-gray-200">
-                      Q<span x-text="index + 1"></span>: <span x-text="item.question"></span>
-                    </p>
-                    <p class="mt-1 text-red-600 dark:text-red-400">Your answer: <span class="font-semibold" x-text="item.userAnswer"></span></p>
-                    <p class="text-emerald-700 dark:text-emerald-400">Correct: <span class="font-semibold" x-text="item.correctAnswer"></span></p>
-                    <p class="text-gray-500 dark:text-gray-400">Chinese: <span x-text="item.chinese"></span> • Pinyin: <span x-text="item.pinyin"></span></p>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <p x-show="quizIncorrectAnswers.length === 0" class="mt-4 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
-              Perfect run! No wrong answers.
-            </p>
-
-            <div class="mt-4 flex gap-3">
-              <button @click="startQuiz()" class="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition duration-300 hover:-translate-y-0.5 active:scale-95">Restart Quiz</button>
-              <button @click="exitQuiz()" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5 active:scale-95">Back to Words</button>
-            </div>
-          </div>
-
-          <div x-show="quizError" class="mt-4 rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-            <p x-text="quizError"></p>
-          </div>
-        </div>
-      </div>
-    </template>
   </main>
 
   <!-- Footer -->
@@ -1036,27 +887,6 @@
         showFavoritesOnly: false,
         selectedPinyinLetter: '',
         pinyinLetters: Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
-        quizMode: false,
-        lastQuestionNo: null,
-        currentQuestion: null,
-        currentOptions: [],
-        currentCorrectAnswer: '',
-        currentQuestionType: 'zh-to-en',
-        selectedOption: null,
-        answered: false,
-        isCorrect: false,
-        quizError: '',
-        quizTotal: 0,
-        quizCorrect: 0,
-        quizStreak: 0,
-        bestStreak: 0,
-        quizLength: 100,
-        currentQuestionIndex: 0,
-        quizCompleted: false,
-        quizTimerSeconds: 20,
-        timeLeft: 20,
-        quizTimerId: null,
-        quizIncorrectAnswers: [],
         toastVisible: false,
         toastMessage: '',
         toastTimeoutId: null,
@@ -1112,21 +942,6 @@
           return results;
         },
 
-        get quizProgressPercent() {
-          if (!this.quizLength) return 0;
-          return Math.min(100, Math.round((this.currentQuestionIndex / this.quizLength) * 100));
-        },
-
-        get timerProgressPercent() {
-          if (!this.quizTimerSeconds) return 0;
-          return Math.max(0, Math.round((this.timeLeft / this.quizTimerSeconds) * 100));
-        },
-
-        get quizAccuracy() {
-          if (!this.quizTotal) return 0;
-          return Math.round((this.quizCorrect / this.quizTotal) * 100);
-        },
-
         // Methods
         init() {
           const stored = localStorage.getItem('darkMode');
@@ -1134,7 +949,6 @@
           const storedLovedWords = localStorage.getItem('lovedWordNos');
           const storedFavoritesOnly = localStorage.getItem('showFavoritesOnly');
           const storedPinyinLetter = localStorage.getItem('selectedPinyinLetter');
-          const storedBestStreak = localStorage.getItem('bestStreak');
           this.darkMode = stored !== null ? stored === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
           this.showPinyin = storedPinyin !== null ? storedPinyin === 'true' : true;
           if (storedLovedWords) {
@@ -1150,7 +964,6 @@
           }
           this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
           this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
-          this.bestStreak = storedBestStreak !== null ? Number(storedBestStreak) || 0 : 0;
           this.generateQuickSearchOptions();
           this.quickSearchIntervalId = setInterval(() => {
             this.generateQuickSearchOptions();
@@ -1164,7 +977,6 @@
           if (this.boundHandleKeydown) {
             window.removeEventListener('keydown', this.boundHandleKeydown);
           }
-          this.stopQuizTimer();
           if (this.toastTimeoutId) {
             clearTimeout(this.toastTimeoutId);
           }
@@ -1172,19 +984,6 @@
             clearInterval(this.quickSearchIntervalId);
             this.quickSearchIntervalId = null;
           }
-        },
-
-        exitQuiz() {
-          this.quizMode = false;
-          this.stopQuizTimer();
-          this.quizCompleted = false;
-          this.currentQuestion = null;
-          this.currentOptions = [];
-          this.currentCorrectAnswer = '';
-          this.currentQuestionIndex = 0;
-          this.answered = false;
-          this.quizError = '';
-          this.quizIncorrectAnswers = [];
         },
 
         toggleDarkMode() {
@@ -1358,179 +1157,8 @@
             this.toggleDarkMode();
           } else if (key === 'p') {
             this.togglePinyin();
-          } else if (key === 'q') {
-            this.startQuiz();
           } else if (key === 'r') {
             this.openRandomWord();
-          }
-        },
-
-        startQuiz() {
-          if (!this.words.length) {
-            this.quizMode = false;
-            this.showToast('No words available for quiz');
-            return;
-          }
-
-          this.quizMode = true;
-          this.quizError = '';
-          this.quizTotal = 0;
-          this.quizCorrect = 0;
-          this.quizStreak = 0;
-          this.quizCompleted = false;
-          this.currentQuestionIndex = 0;
-          this.currentCorrectAnswer = '';
-          this.timeLeft = this.quizTimerSeconds;
-          this.quizIncorrectAnswers = [];
-          this.stopQuizTimer();
-          this.nextQuestion();
-        },
-
-        recordIncorrectAnswer(userAnswer) {
-          if (!this.currentQuestion) return;
-
-          const prompt = this.currentQuestionType === 'zh-to-en'
-            ? `What is the English meaning of "${this.currentQuestion.chinese}"?`
-            : `Which Chinese word matches "${this.currentQuestion.english}"?`;
-
-          this.quizIncorrectAnswers = [
-            ...this.quizIncorrectAnswers,
-            {
-              question: prompt,
-              userAnswer,
-              correctAnswer: this.currentCorrectAnswer,
-              chinese: this.currentQuestion.chinese,
-              pinyin: this.currentQuestion.pinyin
-            }
-          ];
-        },
-
-        stopQuizTimer() {
-          if (this.quizTimerId) {
-            clearInterval(this.quizTimerId);
-            this.quizTimerId = null;
-          }
-        },
-
-        startQuizTimer() {
-          this.stopQuizTimer();
-          this.timeLeft = this.quizTimerSeconds;
-          this.quizTimerId = setInterval(() => {
-            if (!this.quizMode || this.answered || this.quizCompleted) {
-              this.stopQuizTimer();
-              return;
-            }
-
-            this.timeLeft -= 1;
-
-            if (this.timeLeft <= 0) {
-              this.timeLeft = 0;
-              this.handleTimeUp();
-            }
-          }, 1000);
-        },
-
-        handleTimeUp() {
-          if (this.answered || !this.currentQuestion) return;
-
-          this.selectedOption = null;
-          this.answered = true;
-          this.isCorrect = false;
-          this.quizTotal += 1;
-          this.quizStreak = 0;
-          this.recordIncorrectAnswer("Time's up");
-          this.showToast("Time's up");
-          this.stopQuizTimer();
-
-          if (this.currentQuestionIndex >= this.quizLength) {
-            this.quizCompleted = true;
-          }
-        },
-
-        nextQuestion() {
-          if (this.quizCompleted) return;
-
-          if (this.currentQuestionIndex >= this.quizLength) {
-            this.quizCompleted = true;
-            this.stopQuizTimer();
-            return;
-          }
-
-          const pool = this.words;
-          if (!pool.length) {
-            this.quizError = 'No words available for quiz.';
-            this.currentQuestion = null;
-            this.currentOptions = [];
-            this.answered = true;
-            this.stopQuizTimer();
-            return;
-          }
-
-          const candidates = pool.length > 1
-            ? pool.filter(word => word.no !== this.lastQuestionNo)
-            : [...pool];
-
-          const source = candidates.length ? candidates : pool;
-          const randomWord = source[Math.floor(Math.random() * source.length)];
-
-          const questionTypes = ['zh-to-en', 'en-to-zh'];
-          const selectedType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-          const answerPool = selectedType === 'zh-to-en'
-            ? [...new Set(pool.map(word => word.english).filter(Boolean))]
-            : [...new Set(pool.map(word => word.chinese).filter(Boolean))];
-
-          const correctAnswer = selectedType === 'zh-to-en' ? randomWord.english : randomWord.chinese;
-
-          if (!randomWord || !correctAnswer || answerPool.length < 2) {
-            this.quizError = 'Not enough unique answers to build a quiz question.';
-            this.currentQuestion = null;
-            this.currentOptions = [];
-            this.answered = true;
-            this.stopQuizTimer();
-            return;
-          }
-
-          const wrongOptions = this.shuffleArray(
-            answerPool.filter(answer => answer !== correctAnswer)
-          ).slice(0, 3);
-
-          const options = this.shuffleArray([correctAnswer, ...wrongOptions]);
-          
-          this.quizError = '';
-          this.lastQuestionNo = randomWord.no;
-          this.currentQuestion = randomWord;
-          this.currentQuestionType = selectedType;
-          this.currentCorrectAnswer = correctAnswer;
-          this.currentOptions = options;
-          this.currentQuestionIndex += 1;
-          this.selectedOption = null;
-          this.answered = false;
-          this.isCorrect = false;
-          this.startQuizTimer();
-        },
-
-        checkAnswer(option) {
-          if (this.answered || !this.currentQuestion || this.quizCompleted) return;
-          this.selectedOption = option;
-          this.answered = true;
-          this.isCorrect = option === this.currentCorrectAnswer;
-          this.quizTotal += 1;
-          this.stopQuizTimer();
-
-          if (this.isCorrect) {
-            this.quizCorrect += 1;
-            this.quizStreak += 1;
-            if (this.quizStreak > this.bestStreak) {
-              this.bestStreak = this.quizStreak;
-              localStorage.setItem('bestStreak', String(this.bestStreak));
-            }
-          } else {
-            this.quizStreak = 0;
-            this.recordIncorrectAnswer(option);
-          }
-
-          if (this.currentQuestionIndex >= this.quizLength) {
-            this.quizCompleted = true;
           }
         },
 
