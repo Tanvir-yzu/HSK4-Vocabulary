@@ -83,12 +83,12 @@
   <!-- Header -->
   <header class="sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-4">
-      <div class="animate-fade-up flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl border border-white/60 dark:border-gray-700/60 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-sm px-4 py-4">
-      <h1 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent"><a href="https://tanvir-yzu.github.io/HSK4-Vocabulary/">HSK 4 Vocabulary </a></h1>
+      <div class="animate-fade-up flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-2xl border border-white/60 dark:border-gray-700/60 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-sm px-4 py-4">
+      <h1 class="text-2xl font-extrabold tracking-tight leading-none bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent"><a href="https://tanvir-yzu.github.io/HSK4-Vocabulary/" class="inline-block">HSK 4 Vocabulary</a></h1>
 
-      <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-start md:justify-end">
 
-        <a href="https://hsk4quize.netlify.app/" target="_blank" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5 active:scale-95">
+        <a href="https://hsk4quize.netlify.app/" target="_blank" rel="noopener noreferrer" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-700/90 hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5 active:scale-95">
           <span>HSK 4 Quiz</span>
         </a>
 
@@ -99,15 +99,6 @@
           :class="{ 'bg-gray-200 dark:bg-gray-700': showPinyin }"
         >
           <span x-text="showPinyin ? 'Pinyin: ON' : 'Pinyin: OFF'"></span>
-        </button>
-
-        <!-- Theme Toggle -->
-        <button 
-          @click="toggleDarkMode()"
-          class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-300 hover:-translate-y-0.5 active:scale-95"
-          :class="{ 'bg-gray-200 dark:bg-gray-700': darkMode }"
-        >
-          <span x-text="darkMode ? '☀️' : '🌙'"></span>
         </button>
 
       </div>
@@ -178,7 +169,7 @@
           </div>
 
           <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">
-            Shortcuts: <span class="font-medium">/</span> search • <span class="font-medium">D</span> dark mode • <span class="font-medium">P</span> pinyin • <span class="font-medium">R</span> random
+            Shortcuts: <span class="font-medium">/</span> search • <span class="font-medium">P</span> pinyin • <span class="font-medium">R</span> random
           </div>
         </section>
 
@@ -1157,9 +1148,7 @@
 
           const key = event.key.toLowerCase();
 
-          if (key === 'd') {
-            this.toggleDarkMode();
-          } else if (key === 'p') {
+          if (key === 'p') {
             this.togglePinyin();
           } else if (key === 'r') {
             this.openRandomWord();
