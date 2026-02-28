@@ -879,6 +879,8 @@
         flippedCardNo: null,
         lovedWordNos: [],
         quickSearchOptions: [],
+        quickSearchPool: [],
+        searchableWords: [],
         showFavoritesOnly: false,
         selectedPinyinLetter: '',
         pinyinLetters: Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
@@ -900,41 +902,41 @@
 
         get filteredWords() {
           const query = this.searchQuery.trim().toLowerCase();
-          const latinQuery = this.normalizePinyin(query).replace(/[^a-z]/g, '');
-          let results = this.words;
+          const normalizedQuery = this.normalizePinyin(query);
+          const searchTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+          let results = this.searchableWords;
 
-          if (query) {
-            results = results.filter(w => {
-              const chinese = String(w.chinese || '');
-              const pinyin = String(w.pinyin || '');
-              const english = String(w.english || '').toLowerCase();
-              const bengali = String(w.bengali || '');
-              const normalizedPinyin = this.normalizePinyin(pinyin);
-              const normalizedPinyinCompact = normalizedPinyin.replace(/[^a-z]/g, '');
-              const pinyinMatch = latinQuery
-                ? normalizedPinyin.includes(latinQuery) || normalizedPinyinCompact.includes(latinQuery)
-                : false;
+          if (searchTokens.length) {
+            results = results.filter(entry =>
+              searchTokens.every(token => {
+                const latinToken = token.replace(/[^a-z]/g, '');
+                const pinyinMatch = latinToken
+                  ? entry.normalizedPinyin.includes(latinToken) || entry.normalizedPinyinCompact.includes(latinToken)
+                  : false;
 
-              return (
-                chinese.includes(query) ||
-                english.includes(query) ||
-                bengali.includes(query) ||
-                pinyin.toLowerCase().includes(query) ||
-                pinyinMatch
-              );
-            });
+                return (
+                  entry.chinese.includes(token) ||
+                  entry.english.includes(token) ||
+                  entry.bengali.includes(token) ||
+                  entry.pinyin.includes(token) ||
+                  pinyinMatch
+                );
+              })
+            );
           }
 
+          let mappedResults = results.map(entry => entry.word);
+
           if (this.showFavoritesOnly) {
-            results = results.filter(w => this.lovedWordNos.includes(w.no));
+            mappedResults = mappedResults.filter(w => this.lovedWordNos.includes(w.no));
           }
 
           if (this.selectedPinyinLetter) {
             const selected = this.selectedPinyinLetter.toLowerCase();
-            results = results.filter(w => this.getPinyinInitial(w.pinyin) === selected);
+            mappedResults = mappedResults.filter(w => this.getPinyinInitial(w.pinyin) === selected);
           }
 
-          return results;
+          return mappedResults;
         },
 
         // Methods
@@ -959,6 +961,7 @@
           }
           this.showFavoritesOnly = storedFavoritesOnly !== null ? storedFavoritesOnly === 'true' : false;
           this.selectedPinyinLetter = storedPinyinLetter !== null ? storedPinyinLetter : '';
+          this.buildSearchIndex();
           this.generateQuickSearchOptions();
           this.quickSearchIntervalId = setInterval(() => {
             this.generateQuickSearchOptions();
@@ -1010,15 +1013,35 @@
           this.focusSearch();
         },
 
-        generateQuickSearchOptions() {
-          const optionPool = [...new Set(this.words.flatMap(word => [
+        buildSearchIndex() {
+          this.searchableWords = this.words.map(word => {
+            const chinese = String(word.chinese || '');
+            const pinyin = String(word.pinyin || '').toLowerCase();
+            const english = String(word.english || '').toLowerCase();
+            const bengali = String(word.bengali || '').toLowerCase();
+            const normalizedPinyin = this.normalizePinyin(word.pinyin);
+
+            return {
+              word,
+              chinese,
+              pinyin,
+              english,
+              bengali,
+              normalizedPinyin,
+              normalizedPinyinCompact: normalizedPinyin.replace(/[^a-z]/g, '')
+            };
+          });
+
+          this.quickSearchPool = [...new Set(this.words.flatMap(word => [
             word.chinese,
             word.pinyin,
             word.english,
             word.bengali
           ].map(value => String(value || '').trim())).filter(Boolean))];
+        },
 
-          this.quickSearchOptions = this.shuffleArray(optionPool).slice(0, 4);
+        generateQuickSearchOptions() {
+          this.quickSearchOptions = this.shuffleArray(this.quickSearchPool).slice(0, 4);
         },
 
         focusSearch() {
